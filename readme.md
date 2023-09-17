@@ -2,9 +2,9 @@
 
 This game doesn't have a name yet :skull:
 
-This is a chess game made in rust so I have something to waste my time on (and )
+This is a chess game made in rust so I have something to waste my time on
 
-Currently it's just chess but i plan to add more unique features later.
+Currently it's just chess but I plan to add more unique features later.
 
 The game has a server and client, currently it can only connect to localhost but that is because the title screen isn't made yet...
 
