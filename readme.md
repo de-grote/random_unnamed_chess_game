@@ -24,8 +24,6 @@ You can take a king
 
 You can move your king into check
 
-Castling is just build different atm (easy fix just lazy)
-
 All visuals are bad
 
 ---

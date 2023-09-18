@@ -44,12 +44,14 @@ pub fn select_piece(
                 // didnt select our piece
                 if let Some(from) = selected_piece.0 {
                     // a square was selected before
-                    let chess_move = ChessMove { from, to: location };
-                    if let Ok(b) = state.move_piece(chess_move) {
-                        writer.send(MoveEvent(chess_move));
-                        selected_piece.0 = None;
-                        if b {
-                            redraw_writer.send(RedrawBoardEvent);
+                    if state.turn == *color {
+                        let chess_move = ChessMove { from, to: location };
+                        if let Ok(b) = state.move_piece(chess_move) {
+                            writer.send(MoveEvent(chess_move));
+                            selected_piece.0 = None;
+                            if b {
+                                redraw_writer.send(RedrawBoardEvent);
+                            }
                         }
                     }
                 }

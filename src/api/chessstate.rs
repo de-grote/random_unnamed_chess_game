@@ -90,6 +90,12 @@ impl ChessState {
         self.board[x as usize][y as usize] = piece;
     }
 
+    #[inline]
+    fn take_piece(&mut self, location: ChessboardLocation) -> Option<ChessPiece> {
+        let (x, y) = location.into();
+        std::mem::take(&mut self.board[x as usize][y as usize])
+    }
+
     pub fn is_valid_move(&self, chess_move: ChessMove) -> bool {
         if chess_move.to == chess_move.from {
             return false;
@@ -115,8 +121,7 @@ impl ChessState {
         if !self.is_valid_move(chess_move) {
             return Err(InvalidMoveError);
         }
-        let (x, y) = chess_move.from.into();
-        let piece = std::mem::take(&mut self.board[x as usize][y as usize]);
+        let piece = self.take_piece(chess_move.from);
 
         // en passant intermission
         let out = if piece.is_some_and(|p| p.piece_type == ChessPieceType::Pawn)
@@ -171,7 +176,7 @@ impl ChessState {
                 }
             };
             if chess_move.to.file == File::G {
-                let piece = std::mem::take(&mut self.board[File::H as usize][rank as u8 as usize]);
+                let piece = self.take_piece(ChessboardLocation::new(rank, File::H));
                 self.set_location(
                     ChessboardLocation {
                         rank,
@@ -179,10 +184,11 @@ impl ChessState {
                     },
                     piece,
                 );
+                self.turn = !self.turn;
                 return Ok(true);
             }
             if chess_move.to.file == File::C {
-                let piece = std::mem::take(&mut self.board[File::A as usize][rank as u8 as usize]);
+                let piece = self.take_piece(ChessboardLocation::new(rank, File::A));
                 self.set_location(
                     ChessboardLocation {
                         rank,
@@ -190,6 +196,7 @@ impl ChessState {
                     },
                     piece,
                 );
+                self.turn = !self.turn;
                 return Ok(true);
             }
         }

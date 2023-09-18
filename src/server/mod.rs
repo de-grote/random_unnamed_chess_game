@@ -93,15 +93,28 @@ fn receive_packet(
             ClientPacket::Move(player_move) => {
                 info!("got a move packet {:?}", player_move);
                 if let Some(state) = game {
-                    if state.state.move_piece(player_move).is_err() {
+                    if packet.connection.id() == state.white.id()
+                        && state.state.turn == ChessColor::White
+                        || packet.connection.id() == state.black.id()
+                            && state.state.turn == ChessColor::Black
+                    {
+                        if state.state.move_piece(player_move).is_err() {
+                            packet
+                                .connection
+                                .send(ServerPacket::InvalidMove(state.state))
+                                .unwrap_or_else(connection_error);
+                        } else {
+                            state.send_opponent(
+                                packet.connection.id(),
+                                ServerPacket::Move(player_move),
+                            );
+                            info!("send packet")
+                        }
+                    } else {
                         packet
                             .connection
                             .send(ServerPacket::InvalidMove(state.state))
-                            .unwrap_or_else(connection_error);
-                    } else {
-                        state
-                            .send_opponent(packet.connection.id(), ServerPacket::Move(player_move));
-                        info!("send packet")
+                            .unwrap_or_else(connection_error)
                     }
                 }
             }
