@@ -4,8 +4,6 @@ mod api;
 mod client;
 mod server;
 
-extern crate bevy_slinet;
-
 fn main() {
     let args: Vec<_> = std::env::args().collect();
 
@@ -14,13 +12,13 @@ fn main() {
             .iter()
             .find(|&arg| arg.starts_with("-p=") || arg.starts_with("--port="))
         {
-            match port.parse() {
-                Ok(x) => x,
-                Err(_) if port.parse::<Ipv4Addr>().is_ok() => {
-                    SocketAddr::V4(SocketAddrV4::new(port.parse().unwrap(), 1812))
-                }
-                Err(_) => panic!("invalid port, got: {:?}", port),
-            }
+            port.parse().unwrap_or_else(|e| {
+                SocketAddr::new(
+                    port.parse()
+                        .unwrap_or_else(|_| panic!("invalid port, got: {:?}, {}", port, e)),
+                    1812,
+                )
+            })
         } else {
             SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 1812))
         };
