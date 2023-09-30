@@ -1,4 +1,4 @@
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::net::{Ipv4Addr, SocketAddr};
 
 mod api;
 mod client;
@@ -20,7 +20,7 @@ fn main() {
                 )
             })
         } else {
-            SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 1812))
+            SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 1812)
         };
         server::start_server(addr);
         return;

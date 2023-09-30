@@ -124,7 +124,7 @@ impl ChessState {
         let piece = self.take_piece(chess_move.from);
 
         // en passant intermission
-        let out = if piece.is_some_and(|p| p.piece_type == ChessPieceType::Pawn)
+        let mut out = if piece.is_some_and(|p| p.piece_type == ChessPieceType::Pawn)
             && self.get_location(chess_move.to).is_none()
             && chess_move.to.file != chess_move.from.file
         {
@@ -184,10 +184,8 @@ impl ChessState {
                     },
                     piece,
                 );
-                self.turn = !self.turn;
-                return Ok(true);
-            }
-            if chess_move.to.file == File::C {
+                out = true;
+            } else if chess_move.to.file == File::C {
                 let piece = self.take_piece(ChessboardLocation::new(rank, File::A));
                 self.set_location(
                     ChessboardLocation {
@@ -196,8 +194,7 @@ impl ChessState {
                     },
                     piece,
                 );
-                self.turn = !self.turn;
-                return Ok(true);
+                out = true;
             }
         }
         self.turn = !self.turn;
