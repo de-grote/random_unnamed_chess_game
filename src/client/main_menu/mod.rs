@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, thread};
+use std::net::SocketAddr;
 
 use bevy::{
     core_pipeline::clear_color::ClearColorConfig,
@@ -6,6 +6,7 @@ use bevy::{
     prelude::*,
 };
 
+#[cfg(feature = "server")]
 use crate::server;
 
 use super::{
@@ -137,6 +138,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             TextSelectionInput,
             TextSelectionState::Connection,
+            Menu,
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -184,11 +186,15 @@ fn text_update_system(
 fn keyboard_input_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut start_game: EventWriter<MakeConnectionEvent>,
+    #[cfg(feature = "server")]
     server_port: Res<ConnectionAddress>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Return) {
-        let port = server_port.0;
-        thread::spawn(move || server::start_server(port));
+        #[cfg(feature = "server")]
+        {
+            let port = server_port.0;
+            std::thread::spawn(move || server::start_server(port));
+        }
         start_game.send(MakeConnectionEvent);
     }
     if keyboard_input.just_pressed(KeyCode::Space) {

@@ -11,6 +11,10 @@ bevy_slinet = { version = "0.7.0", features = ["protocol_tcp", "server", "client
 rand = "0.8.5"
 serde = { version = "1.0.164", features = ["derive"] }
 
+[features]
+default = ["client", "server"]
+server = []
+client = []
 
 [profile.dev]
 opt-level = 1
