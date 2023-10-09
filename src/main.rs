@@ -4,7 +4,8 @@ mod client;
 #[cfg(feature = "server")]
 mod server;
 
-#[cfg(not(any(feature = "client", feature = "server")))] compile_error!("You must enable at least the client or server feature!");
+#[cfg(not(any(feature = "client", feature = "server")))]
+compile_error!("You must enable at least the client or server feature!");
 
 fn main() {
     #[cfg(feature = "server")]
@@ -13,15 +14,18 @@ fn main() {
 
         let args: Vec<_> = std::env::args().collect();
 
-        if cfg!(not(feature = "client")) || args.get(1).is_some_and(|x| x == "--server" || x == "-s") {
-            let addr = if let Some(port) = args
+        if cfg!(not(feature = "client"))
+            || args.get(1).is_some_and(|x| x == "--server" || x == "-s")
+        {
+            let addr = if let Some((_, port)) = args
                 .iter()
-                .find(|&arg| arg.starts_with("-p=") || arg.starts_with("--port="))
+                .filter_map(|s| s.split_once('='))
+                .find(|&arg| arg.0 == "-p" || arg.0 == "--port")
             {
-                port.parse().unwrap_or_else(|e| {
+                port.trim_matches('"').parse().unwrap_or_else(|_| {
                     SocketAddr::new(
                         port.parse()
-                            .unwrap_or_else(|_| panic!("invalid port, got: {:?}, {}", port, e)),
+                            .unwrap_or_else(|_| panic!("invalid port, got: {:?}", port)),
                         1812,
                     )
                 })

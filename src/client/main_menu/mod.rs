@@ -186,8 +186,7 @@ fn text_update_system(
 fn keyboard_input_system(
     keyboard_input: Res<Input<KeyCode>>,
     mut start_game: EventWriter<MakeConnectionEvent>,
-    #[cfg(feature = "server")]
-    server_port: Res<ConnectionAddress>,
+    #[cfg(feature = "server")] server_port: Res<ConnectionAddress>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Return) {
         #[cfg(feature = "server")]
@@ -239,7 +238,10 @@ fn connection_text_input(
     }
 }
 
-fn change_background(mut input: Query<(&mut BackgroundColor, &TextSelectionState), With<TextSelectionInput>>, state: Res<State<TextSelectionState>>) {
+fn change_background(
+    mut input: Query<(&mut BackgroundColor, &TextSelectionState), With<TextSelectionInput>>,
+    state: Res<State<TextSelectionState>>,
+) {
     if state.is_changed() {
         for (mut b, tss) in &mut input {
             if *state == *tss {
