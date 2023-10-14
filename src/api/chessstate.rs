@@ -1,10 +1,7 @@
 use std::{error::Error, fmt::Display};
 
 use super::chessmove::{
-    ChessColor::{self, *},
-    ChessMove, ChessPiece,
-    ChessPieceType::{self, *},
-    ChessboardLocation, File, Rank,
+    ChessColor, ChessMove, ChessPiece, ChessPieceType, ChessboardLocation, File, Rank,
 };
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -39,33 +36,33 @@ impl Default for ChessState {
         Self {
             board: [
                 [
-                    Some(ChessPiece::new(White, Rook)),
-                    Some(ChessPiece::new(White, Knight)),
-                    Some(ChessPiece::new(White, Bishop)),
-                    Some(ChessPiece::new(White, Queen)),
-                    Some(ChessPiece::new(White, King)),
-                    Some(ChessPiece::new(White, Bishop)),
-                    Some(ChessPiece::new(White, Knight)),
-                    Some(ChessPiece::new(White, Rook)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Rook)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Knight)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Bishop)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Queen)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::King)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Bishop)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Knight)),
+                    Some(ChessPiece::new(ChessColor::White, ChessPieceType::Rook)),
                 ],
-                [Some(ChessPiece::new(White, Pawn)); 8],
+                [Some(ChessPiece::new(ChessColor::White, ChessPieceType::Pawn)); 8],
                 [None; 8],
                 [None; 8],
                 [None; 8],
                 [None; 8],
-                [Some(ChessPiece::new(Black, Pawn)); 8],
+                [Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Pawn)); 8],
                 [
-                    Some(ChessPiece::new(Black, Rook)),
-                    Some(ChessPiece::new(Black, Knight)),
-                    Some(ChessPiece::new(Black, Bishop)),
-                    Some(ChessPiece::new(Black, Queen)),
-                    Some(ChessPiece::new(Black, King)),
-                    Some(ChessPiece::new(Black, Bishop)),
-                    Some(ChessPiece::new(Black, Knight)),
-                    Some(ChessPiece::new(Black, Rook)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Rook)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Knight)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Bishop)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Queen)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::King)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Bishop)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Knight)),
+                    Some(ChessPiece::new(ChessColor::Black, ChessPieceType::Rook)),
                 ],
             ],
-            turn: White,
+            turn: ChessColor::White,
             en_passant: None,
             white_king_moved: false,
             black_king_moved: false,
@@ -107,12 +104,12 @@ impl ChessState {
             return false;
         }
         match piece.piece_type {
-            King => moves::king(self, chess_move),
-            Queen => moves::queen(self, chess_move),
-            Rook => moves::rook(self, chess_move),
-            Knight => moves::knight(self, chess_move),
-            Bishop => moves::bishop(self, chess_move),
-            Pawn => moves::pawn(self, chess_move),
+            ChessPieceType::King => moves::king(self, chess_move),
+            ChessPieceType::Queen => moves::queen(self, chess_move),
+            ChessPieceType::Rook => moves::rook(self, chess_move),
+            ChessPieceType::Knight => moves::knight(self, chess_move),
+            ChessPieceType::Bishop => moves::bishop(self, chess_move),
+            ChessPieceType::Pawn => moves::pawn(self, chess_move),
         }
     }
 
@@ -166,11 +163,11 @@ impl ChessState {
             && chess_move.from.file == File::E
         {
             let rank = match self.turn {
-                White => {
+                ChessColor::White => {
                     self.white_king_moved = true;
                     Rank::One
                 }
-                Black => {
+                ChessColor::Black => {
                     self.black_king_moved = true;
                     Rank::Eight
                 }
@@ -218,18 +215,18 @@ impl Display for ChessState {
                     .map(|&x| match x {
                         None => ' ',
                         Some(x) => match x.into() {
-                            (White, King) => 'K',
-                            (White, Queen) => 'Q',
-                            (White, Rook) => 'R',
-                            (White, Knight) => 'N',
-                            (White, Bishop) => 'B',
-                            (White, Pawn) => 'P',
-                            (Black, King) => 'k',
-                            (Black, Queen) => 'q',
-                            (Black, Rook) => 'r',
-                            (Black, Knight) => 'n',
-                            (Black, Bishop) => 'b',
-                            (Black, Pawn) => 'p',
+                            (ChessColor::White, ChessPieceType::King) => 'K',
+                            (ChessColor::White, ChessPieceType::Queen) => 'Q',
+                            (ChessColor::White, ChessPieceType::Rook) => 'R',
+                            (ChessColor::White, ChessPieceType::Knight) => 'N',
+                            (ChessColor::White, ChessPieceType::Bishop) => 'B',
+                            (ChessColor::White, ChessPieceType::Pawn) => 'P',
+                            (ChessColor::Black, ChessPieceType::King) => 'k',
+                            (ChessColor::Black, ChessPieceType::Queen) => 'q',
+                            (ChessColor::Black, ChessPieceType::Rook) => 'r',
+                            (ChessColor::Black, ChessPieceType::Knight) => 'n',
+                            (ChessColor::Black, ChessPieceType::Bishop) => 'b',
+                            (ChessColor::Black, ChessPieceType::Pawn) => 'p',
                         },
                     })
                     .chain("\r\n".chars())
@@ -326,10 +323,9 @@ mod moves {
                 if let Some(piece) = state.get_location(ChessboardLocation::new(rank, i)) {
                     if piece.color == state.turn {
                         return false;
-                    } else {
-                        // taking a piece
-                        return i == chess_move.to.file as u8;
                     }
+                    // taking a piece
+                    return i == chess_move.to.file as u8;
                 }
             }
         } else if chess_move.from.file == chess_move.to.file {
@@ -341,10 +337,9 @@ mod moves {
                 if let Some(piece) = state.get_location(ChessboardLocation::new(i, file)) {
                     if piece.color == state.turn {
                         return false;
-                    } else {
-                        // taking a piece
-                        return i == chess_move.to.rank as u8;
                     }
+                    // taking a piece
+                    return i == chess_move.to.rank as u8;
                 }
             }
         } else {
@@ -373,10 +368,9 @@ mod moves {
                 if let Some(piece) = state.get_location(location) {
                     if piece.color == state.turn {
                         return false;
-                    } else {
-                        // taking a piece
-                        return location == chess_move.to;
                     }
+                    // taking a piece
+                    return location == chess_move.to;
                 }
             }
             return true;

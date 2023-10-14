@@ -22,7 +22,7 @@ fn main() {
                 .filter_map(|s| s.split_once('='))
                 .find(|&arg| arg.0 == "-p" || arg.0 == "--port")
             {
-                port.trim_matches('"').parse().unwrap_or_else(|_| {
+                port.parse().unwrap_or_else(|_| {
                     SocketAddr::new(
                         port.parse()
                             .unwrap_or_else(|_| panic!("invalid port, got: {:?}", port)),

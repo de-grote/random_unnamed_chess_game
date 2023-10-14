@@ -8,12 +8,12 @@ edition = "2021"
 [dependencies]
 bevy = "0.11.2"
 bevy_slinet = { version = "0.7.0", features = ["protocol_tcp", "server", "client", "bincode", "serializer_bincode"] }
-rand = "0.8.5"
+rand = { version = "0.8.5", optional = true }
 serde = { version = "1.0.164", features = ["derive"] }
 
 [features]
 default = ["client", "server"]
-server = []
+server = ["dep:rand"]
 client = []
 
 [profile.dev]

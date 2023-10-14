@@ -108,21 +108,21 @@ fn receive_packet(
                                 packet.connection.id(),
                                 ServerPacket::Move(player_move),
                             );
-                            info!("send packet")
+                            info!("send packet");
                         }
                     } else {
                         packet
                             .connection
                             .send(ServerPacket::InvalidMove(state.state))
-                            .unwrap_or_else(connection_error)
+                            .unwrap_or_else(connection_error);
                     }
                 }
             }
             ClientPacket::Disconnect => {
                 if let Some(game) = game {
-                    game.send_opponent(packet.connection.id(), ServerPacket::Disconnect)
+                    game.send_opponent(packet.connection.id(), ServerPacket::Disconnect);
                 } else {
-                    game_queue.0.retain(|x| x.id() != packet.connection.id())
+                    game_queue.0.retain(|x| x.id() != packet.connection.id());
                 }
             }
             ClientPacket::Reconnect => {

@@ -156,7 +156,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn text_color_system(time: Res<Time>, mut query: Query<&mut Text, With<ColorText>>) {
-    for mut text in &mut query {
+    for mut text in query.iter_mut() {
         let seconds = time.elapsed_seconds();
 
         // Update the color of the first and only section.
@@ -173,7 +173,7 @@ fn text_update_system(
     diagnostics: Res<DiagnosticsStore>,
     mut query: Query<&mut Text, With<FpsText>>,
 ) {
-    for mut text in &mut query {
+    for mut text in query.iter_mut() {
         if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
             if let Some(value) = fps.smoothed() {
                 // Update the value of the second section
@@ -230,7 +230,7 @@ fn connection_text_input(
             Err(_) => match string.parse() {
                 Ok(v) => {
                     *address = ConnectionAddress(SocketAddr::new(v, 1812));
-                    input.sections[0].style.color = Color::WHITE
+                    input.sections[0].style.color = Color::WHITE;
                 }
                 Err(_) => input.sections[0].style.color = Color::ORANGE_RED,
             },
@@ -243,7 +243,7 @@ fn change_background(
     state: Res<State<TextSelectionState>>,
 ) {
     if state.is_changed() {
-        for (mut b, tss) in &mut input {
+        for (mut b, tss) in input.iter_mut() {
             if *state == *tss {
                 b.0 = Color::GRAY;
             } else {
@@ -259,7 +259,7 @@ fn select_ui(
     mouse_input: Res<Input<MouseButton>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
-        for (selection, state) in &text_selection {
+        for (selection, state) in text_selection.iter() {
             if *selection == Interaction::Pressed {
                 selection_state.set(*state);
             }
