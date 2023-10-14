@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::net::ToSocketAddrs;
 
 use bevy::{
     core_pipeline::clear_color::ClearColorConfig,
@@ -130,6 +130,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     position_type: PositionType::Absolute,
                     bottom: Val::Px(5.0),
                     left: Val::Px(15.0),
+                    min_width: Val::Px(100.0),
+                    min_height: Val::Px(60.0),
                     ..default()
                 },
                 background_color: BackgroundColor(Color::GRAY),
@@ -222,18 +224,12 @@ fn connection_text_input(
     if changed {
         let input = input.single_mut().into_inner();
         input.sections[0].value.clone_from(&string);
-        match string.parse::<SocketAddr>() {
-            Ok(v) => {
+        match string.to_socket_addrs().map(|mut p| p.next()) {
+            Ok(Some(v)) => {
                 *address = ConnectionAddress(v);
                 input.sections[0].style.color = Color::WHITE;
             }
-            Err(_) => match string.parse() {
-                Ok(v) => {
-                    *address = ConnectionAddress(SocketAddr::new(v, 1812));
-                    input.sections[0].style.color = Color::WHITE;
-                }
-                Err(_) => input.sections[0].style.color = Color::ORANGE_RED,
-            },
+            Err(_) | Ok(None) => input.sections[0].style.color = Color::ORANGE_RED,
         };
     }
 }

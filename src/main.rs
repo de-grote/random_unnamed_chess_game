@@ -1,3 +1,5 @@
+use std::net::ToSocketAddrs;
+
 mod api;
 #[cfg(feature = "client")]
 mod client;
@@ -22,13 +24,7 @@ fn main() {
                 .filter_map(|s| s.split_once('='))
                 .find(|&arg| arg.0 == "-p" || arg.0 == "--port")
             {
-                port.parse().unwrap_or_else(|_| {
-                    SocketAddr::new(
-                        port.parse()
-                            .unwrap_or_else(|_| panic!("invalid port, got: {:?}", port)),
-                        1812,
-                    )
-                })
+                port.to_socket_addrs().map(|mut p| p.next()).unwrap_or_default().expect("invalid port or domain")
             } else {
                 SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 1812)
             };
