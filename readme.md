@@ -22,9 +22,9 @@ Inspired by Chess Battle Advanced (yes I know that's not a real game) and [Icely
 ## known bugs
 There is no win or draw detection (the game doesn't end ever basically).
 
-You can take a king.
+The game softlockes in case of a checkmate or stalemate.
 
-You can move your king into check.
+50 move rule does not exist yet.
 
 All visuals are bad.
 

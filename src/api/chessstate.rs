@@ -103,14 +103,30 @@ impl ChessState {
         if piece.color != self.turn {
             return false;
         }
-        match piece.piece_type {
+        if !match piece.piece_type {
             ChessPieceType::King => moves::king(self, chess_move),
             ChessPieceType::Queen => moves::queen(self, chess_move),
             ChessPieceType::Rook => moves::rook(self, chess_move),
             ChessPieceType::Knight => moves::knight(self, chess_move),
             ChessPieceType::Bishop => moves::bishop(self, chess_move),
             ChessPieceType::Pawn => moves::pawn(self, chess_move),
+        } {
+            return false;
+        };
+        let mut copy = *self;
+        let p = copy.take_piece(chess_move.from);
+        copy.set_location(chess_move.to, p);
+        for x in 0..8 {
+            for y in 0..8 {
+                let location = ChessboardLocation::new(x, y);
+                if copy.get_location(location)
+                    == Some(ChessPiece::new(copy.turn, ChessPieceType::King))
+                {
+                    return !copy.is_attacked(location);
+                }
+            }
         }
+        false
     }
 
     /// moves piece if move is valid, returns an Error when piece didn't move, returns Ok(true) if a redraw needs to happen
@@ -198,11 +214,39 @@ impl ChessState {
         Ok(out)
     }
 
-    /// returns true if a square is attacked by a specified color
-    #[allow(unused_variables)] // TODO make this function
-    pub fn is_attacked(&self, location: ChessboardLocation, color: ChessColor) -> bool {
-        let rank = location.rank as u8;
-        let file = location.file as u8;
+    /// returns true if a square is attacked by the opponent
+    pub fn is_attacked(&self, location: ChessboardLocation) -> bool {
+        let mut copy = *self;
+        copy.turn = !self.turn;
+        for x in 0..8 {
+            for y in 0..8 {
+                let chess_move = ChessMove {
+                    from: ChessboardLocation::new(x, y),
+                    to: location,
+                };
+                // this part is largely copied from State::is_valid_move but without checking if its check because that calls this function,
+                // and although it doesn't create a recursion forever, it isn't very efficient.
+                if chess_move.to == chess_move.from {
+                    continue;
+                }
+                let Some(piece) = copy.get_location(chess_move.from) else {
+                    continue;
+                };
+                if piece.color != copy.turn {
+                    continue;
+                }
+                if match piece.piece_type {
+                    ChessPieceType::King => moves::king(&copy, chess_move),
+                    ChessPieceType::Queen => moves::queen(&copy, chess_move),
+                    ChessPieceType::Rook => moves::rook(&copy, chess_move),
+                    ChessPieceType::Knight => moves::knight(&copy, chess_move),
+                    ChessPieceType::Bishop => moves::bishop(&copy, chess_move),
+                    ChessPieceType::Pawn => moves::pawn(&copy, chess_move),
+                } {
+                    return true;
+                };
+            }
+        }
         false
     }
 }
@@ -253,7 +297,7 @@ mod moves {
                     return false;
                 }
             }
-            return !state.is_attacked(chess_move.to, !state.turn);
+            return true;
         }
 
         // castling
@@ -278,7 +322,7 @@ mod moves {
                     Rank::Eight
                 }
             };
-            if state.is_attacked(ChessboardLocation::new(rank, File::E), !state.turn) {
+            if state.is_attacked(ChessboardLocation::new(rank, File::E)) {
                 return false;
             }
             if chess_move.to.file == File::C
@@ -288,20 +332,20 @@ mod moves {
                 && state
                     .get_location(ChessboardLocation::new(rank, File::C))
                     .is_none()
-                && !state.is_attacked(ChessboardLocation::new(rank, File::C), !state.turn)
+                && !state.is_attacked(ChessboardLocation::new(rank, File::C))
                 && state
                     .get_location(ChessboardLocation::new(rank, File::D))
                     .is_none()
-                && !state.is_attacked(ChessboardLocation::new(rank, File::D), !state.turn)
+                && !state.is_attacked(ChessboardLocation::new(rank, File::D))
                 || chess_move.to.file == File::G
                     && state
                         .get_location(ChessboardLocation::new(rank, File::F))
                         .is_none()
-                    && !state.is_attacked(ChessboardLocation::new(rank, File::F), !state.turn)
+                    && !state.is_attacked(ChessboardLocation::new(rank, File::F))
                     && state
                         .get_location(ChessboardLocation::new(rank, File::G))
                         .is_none()
-                    && !state.is_attacked(ChessboardLocation::new(rank, File::G), !state.turn)
+                    && !state.is_attacked(ChessboardLocation::new(rank, File::G))
             {
                 return true;
             }
