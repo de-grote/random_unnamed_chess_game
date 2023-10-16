@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt, net::SocketAddr};
 use bevy::prelude::*;
 use bevy_slinet::{
     connection::{ConnectionId, EcsConnection},
-    server::{NewConnectionEvent, PacketReceiveEvent, ServerPlugin},
+    server::{NewConnectionEvent, PacketReceiveEvent, ServerPlugin, DisconnectionEvent},
 };
 
 use rand::prelude::*;
@@ -22,7 +22,7 @@ pub fn start_server(addr: SocketAddr) {
         .init_resource::<GameId>()
         .add_plugins(MinimalPlugins)
         .add_plugins(ServerPlugin::<Config>::bind(addr))
-        .add_systems(Update, (create_game, new_connection_system, receive_packet))
+        .add_systems(Update, (create_game, new_connection_system, receive_packet, disconnect))
         .run();
 }
 
@@ -70,6 +70,18 @@ impl Game {
         .send(packet)
         .unwrap_or_else(connection_error);
     }
+
+    /// disconnects the opponent
+    pub fn disconnect_opponent(&self, connection_id: ConnectionId) {
+        if self.white.id() == connection_id {
+            &self.black
+        } else if self.black.id() == connection_id {
+            &self.white
+        } else {
+            return warn!("connection not in this game");
+        }
+        .disconnect();
+    }
 }
 
 fn new_connection_system(
@@ -83,7 +95,6 @@ fn new_connection_system(
 }
 
 fn receive_packet(
-    mut game_queue: ResMut<GameQueue>,
     mut event: EventReader<PacketReceiveEvent<Config>>,
     connection_map: Res<ConnectionMap>,
     mut game_map: ResMut<ChessGameMap>,
@@ -123,6 +134,7 @@ fn receive_packet(
                                 ServerPacket::EndGame(reason),
                             );
                             packet.connection.disconnect();
+                            state.disconnect_opponent(packet.connection.id())
                         }
                         info!("send packet");
                     }
@@ -133,30 +145,15 @@ fn receive_packet(
                         .unwrap_or_else(connection_error);
                 }
             }
-            ClientPacket::Disconnect => {
-                if let Some(game) = game {
-                    game.send_opponent(
-                        packet.connection.id(),
-                        ServerPacket::EndGame(if packet.connection.id() == game.white.id() {
-                            GameEnd::Black(EndReason::Resignation)
-                        } else {
-                            GameEnd::White(EndReason::Resignation)
-                        }),
-                    );
-                } else {
-                    game_queue.0.retain(|x| x.id() != packet.connection.id());
-                }
-                packet.connection.disconnect();
-            }
             ClientPacket::Reconnect => {
-                packet
-                    .connection
-                    .send(if let Some(game) = game {
-                        ServerPacket::StateReminder(game.state)
-                    } else {
-                        ServerPacket::Disconnect
-                    })
-                    .unwrap_or_else(connection_error);
+                if let Some(game) = game {
+                    packet
+                        .connection
+                        .send(ServerPacket::StateReminder(game.state))
+                        .unwrap_or_else(connection_error);
+                } else {
+                    packet.connection.disconnect();
+                }
             }
         }
     }
@@ -193,6 +190,33 @@ fn create_game(
     connection_map.0.insert(black.id(), *id);
     game_map.0.insert(*id, Game::new(white, black));
     id.0 += 1;
+}
+
+fn disconnect(
+    mut disconnect_event: EventReader<DisconnectionEvent<Config>>,
+    connection_map: Res<ConnectionMap>,
+    mut game_map: ResMut<ChessGameMap>,
+    mut game_queue: ResMut<GameQueue>,
+) {
+    for packet in disconnect_event.iter() {
+        let Some(id) = connection_map.0.get(&packet.connection.id()) else {
+            return;
+        };
+        let game = game_map.0.get_mut(id);
+        if let Some(game) = game {
+            game.send_opponent(
+                packet.connection.id(),
+                ServerPacket::EndGame(if packet.connection.id() == game.white.id() {
+                    GameEnd::Black(EndReason::Resignation)
+                } else {
+                    GameEnd::White(EndReason::Resignation)
+                }),
+            );
+        } else {
+            game_queue.0.retain(|x| x.id() != packet.connection.id());
+        }
+        packet.connection.disconnect();
+    }
 }
 
 fn connection_error(err: impl fmt::Debug) {

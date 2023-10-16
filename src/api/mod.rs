@@ -49,14 +49,12 @@ pub enum EndReason {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum ClientPacket {
-    Disconnect,
     Reconnect,
     Move(chessmove::ChessMove),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum ServerPacket {
-    Disconnect,
     MatchFound(chessmove::ChessColor),
     InvalidMove(chessstate::ChessState),
     StateReminder(chessstate::ChessState),

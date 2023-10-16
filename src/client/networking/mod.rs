@@ -3,7 +3,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use bevy::{prelude::*, window::WindowCloseRequested};
 use bevy_slinet::client::{
     ClientConnection, ClientConnections, ClientPlugin, ConnectionEstablishEvent,
-    ConnectionRequestEvent, PacketReceiveEvent,
+    ConnectionRequestEvent, PacketReceiveEvent, DisconnectionEvent,
 };
 
 use crate::api::{
@@ -30,6 +30,7 @@ impl Plugin for NetworkingPlugin {
                     receive_connection,
                     receive_packet,
                     window_close,
+                    end_connection,
                 ),
             );
     }
@@ -80,6 +81,15 @@ pub fn receive_connection(
     }
 }
 
+pub fn end_connection(
+    mut disconnection_event: EventReader<DisconnectionEvent<Config>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    for _ in disconnection_event.iter() {
+        game_state.set(GameState::MainMenu);
+    }
+}
+
 pub fn receive_packet(
     mut packet_event: EventReader<PacketReceiveEvent<Config>>,
     mut color: ResMut<ChessColor>,
@@ -116,10 +126,6 @@ pub fn receive_packet(
                     .send(ClientPacket::Reconnect)
                     .unwrap_or_else(|x| warn!("connection error {:?}", x)),
             },
-            ServerPacket::Disconnect => {
-                packet.connection.disconnect();
-                game_state.set(GameState::MainMenu);
-            },
             ServerPacket::EndGame(end) => victory_event.send(match end {
                 GameEnd::White(reason) => {
                     if *color == ChessColor::White {
@@ -147,9 +153,6 @@ fn window_close(
 ) {
     for _ in close_event.iter() {
         for connection in connections.iter() {
-            connection
-                .send(ClientPacket::Disconnect)
-                .unwrap_or_else(|_| warn!("couldnt send a packet while closing game (too bad)"));
             connection.disconnect();
         }
     }
