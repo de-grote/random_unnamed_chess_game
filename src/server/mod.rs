@@ -9,7 +9,9 @@ use bevy_slinet::{
 use rand::prelude::*;
 
 use crate::api::{
-    chessmove::ChessColor, chessstate::ChessState, ClientPacket, Config, ServerPacket,
+    chessmove::{ChessColor, Chessboard},
+    chessstate::ChessState,
+    ClientPacket, Config, EndReason, GameEnd, ServerPacket,
 };
 
 pub fn start_server(addr: SocketAddr) {
@@ -42,6 +44,7 @@ pub struct Game {
     pub black: EcsConnection<ServerPacket>,
     pub state: ChessState,
     pub turn: ChessColor,
+    pub move_history: Vec<Chessboard>, // might store more efficient later
 }
 
 impl Game {
@@ -51,6 +54,7 @@ impl Game {
             black,
             state: default(),
             turn: ChessColor::White,
+            move_history: Vec::new(),
         }
     }
 
@@ -92,35 +96,52 @@ fn receive_packet(
         match packet.packet {
             ClientPacket::Move(player_move) => {
                 info!("got a move packet {:?}", player_move);
-                if let Some(state) = game {
-                    if packet.connection.id() == state.white.id()
-                        && state.state.turn == ChessColor::White
-                        || packet.connection.id() == state.black.id()
-                            && state.state.turn == ChessColor::Black
-                    {
-                        if state.state.move_piece(player_move).is_err() {
-                            packet
-                                .connection
-                                .send(ServerPacket::InvalidMove(state.state))
-                                .unwrap_or_else(connection_error);
-                        } else {
-                            state.send_opponent(
-                                packet.connection.id(),
-                                ServerPacket::Move(player_move),
-                            );
-                            info!("send packet");
-                        }
-                    } else {
+                let Some(state) = game else {
+                    return;
+                };
+                if packet.connection.id() == state.white.id()
+                    && state.state.turn == ChessColor::White
+                    || packet.connection.id() == state.black.id()
+                        && state.state.turn == ChessColor::Black
+                {
+                    if state.state.move_piece(player_move).is_err() {
                         packet
                             .connection
                             .send(ServerPacket::InvalidMove(state.state))
                             .unwrap_or_else(connection_error);
+                    } else {
+                        state
+                            .send_opponent(packet.connection.id(), ServerPacket::Move(player_move));
+                        state.move_history.push(state.state.board);
+                        if let Some(reason) = state.state.check_game_end(&state.move_history) {
+                            packet
+                                .connection
+                                .send(ServerPacket::EndGame(reason))
+                                .unwrap_or_else(connection_error);
+                            state.send_opponent(
+                                packet.connection.id(),
+                                ServerPacket::EndGame(reason),
+                            )
+                        }
+                        info!("send packet");
                     }
+                } else {
+                    packet
+                        .connection
+                        .send(ServerPacket::InvalidMove(state.state))
+                        .unwrap_or_else(connection_error);
                 }
             }
             ClientPacket::Disconnect => {
                 if let Some(game) = game {
-                    game.send_opponent(packet.connection.id(), ServerPacket::Disconnect);
+                    game.send_opponent(
+                        packet.connection.id(),
+                        ServerPacket::EndGame(if packet.connection.id() == game.white.id() {
+                            GameEnd::Black(EndReason::Resignation)
+                        } else {
+                            GameEnd::White(EndReason::Resignation)
+                        }),
+                    );
                 } else {
                     game_queue.0.retain(|x| x.id() != packet.connection.id());
                 }

@@ -3,6 +3,8 @@ use std::{fmt::Display, ops::Not};
 use bevy::prelude::{Component, Resource};
 use serde::{Deserialize, Serialize};
 
+pub type Chessboard = [[Option<ChessPiece>; 8]; 8];
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct ChessMove {
     pub from: ChessboardLocation,

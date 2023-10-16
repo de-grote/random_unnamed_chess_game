@@ -24,7 +24,10 @@ fn main() {
                 .filter_map(|s| s.split_once('='))
                 .find(|&arg| arg.0 == "-p" || arg.0 == "--port")
             {
-                port.to_socket_addrs().map(|mut p| p.next()).unwrap_or_default().expect("invalid port or domain")
+                port.to_socket_addrs()
+                    .map(|mut p| p.next())
+                    .unwrap_or_default()
+                    .expect("invalid port or domain")
             } else {
                 SocketAddr::new(Ipv4Addr::new(127, 0, 0, 1).into(), 1812)
             };

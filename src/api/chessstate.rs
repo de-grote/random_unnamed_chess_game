@@ -1,14 +1,18 @@
 use std::{error::Error, fmt::Display};
 
-use super::chessmove::{
-    ChessColor, ChessMove, ChessPiece, ChessPieceType, ChessboardLocation, File, Rank,
+use super::{
+    chessmove::{
+        ChessColor, ChessMove, ChessPiece, ChessPieceType, Chessboard, ChessboardLocation, File,
+        Rank,
+    },
+    GameEnd,
 };
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Resource, Clone, Serialize, Deserialize, Debug, Copy)]
 pub struct ChessState {
-    pub board: [[Option<ChessPiece>; 8]; 8],
+    pub board: Chessboard,
     pub turn: ChessColor,
     /// Some(File) if a pawn pushed 2 squares on that file as the last move.
     pub en_passant: Option<File>,
@@ -248,6 +252,12 @@ impl ChessState {
             }
         }
         false
+    }
+
+    // checks if the game should end
+    #[allow(unused_variables)] // TODO implement this function
+    pub fn check_game_end(&self, move_history: &[Chessboard]) -> Option<GameEnd> {
+        None
     }
 }
 

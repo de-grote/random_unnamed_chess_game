@@ -7,12 +7,12 @@ use bevy_slinet::client::{
 };
 
 use crate::api::{
-    chessmove::ChessColor, chessstate::ChessState, ClientPacket, Config, ServerPacket,
+    chessmove::ChessColor, chessstate::ChessState, ClientPacket, Config, GameEnd, ServerPacket,
 };
 
 use super::{
     game::{MoveEvent, OpponentMoveEvent, RedrawBoardEvent},
-    GameState,
+    GameState, VictoryEvent,
 };
 
 pub struct NetworkingPlugin;
@@ -87,23 +87,24 @@ pub fn receive_packet(
     mut game_state: ResMut<NextState<GameState>>,
     mut move_event: EventWriter<OpponentMoveEvent>,
     mut redraw_event: EventWriter<RedrawBoardEvent>,
+    mut victory_event: EventWriter<VictoryEvent>,
 ) {
     for packet in packet_event.iter() {
         info!("got a packet, {:?}", packet.packet);
-        match &packet.packet {
-            &ServerPacket::MatchFound(c) => {
-                color.clone_from(&c);
+        match packet.packet {
+            ServerPacket::MatchFound(c) => {
+                *color = c;
                 game_state.set(GameState::Gaming);
             }
             ServerPacket::InvalidMove(state) => {
-                chess_state.clone_from(state);
+                *chess_state = state;
                 redraw_event.send(RedrawBoardEvent);
             }
             ServerPacket::StateReminder(state) => {
-                chess_state.clone_from(state);
+                *chess_state = state;
                 redraw_event.send(RedrawBoardEvent);
             }
-            &ServerPacket::Move(chess_move) => match chess_state.move_piece(chess_move) {
+            ServerPacket::Move(chess_move) => match chess_state.move_piece(chess_move) {
                 Ok(b) => {
                     move_event.send(OpponentMoveEvent(chess_move));
                     if b {
@@ -116,6 +117,23 @@ pub fn receive_packet(
                     .unwrap_or_else(|x| warn!("connection error {:?}", x)),
             },
             ServerPacket::Disconnect => game_state.set(GameState::MainMenu),
+            ServerPacket::EndGame(end) => victory_event.send(match end {
+                GameEnd::White(reason) => {
+                    if *color == ChessColor::White {
+                        VictoryEvent::Win(reason)
+                    } else {
+                        VictoryEvent::Loss(reason)
+                    }
+                }
+                GameEnd::Black(reason) => {
+                    if *color == ChessColor::Black {
+                        VictoryEvent::Win(reason)
+                    } else {
+                        VictoryEvent::Loss(reason)
+                    }
+                }
+                GameEnd::Draw(reason) => VictoryEvent::Draw(reason),
+            }),
         }
     }
 }

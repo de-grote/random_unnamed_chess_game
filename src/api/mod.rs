@@ -29,6 +29,25 @@ impl ServerConfig for Config {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum GameEnd {
+    White(EndReason),
+    Black(EndReason),
+    Draw(EndReason),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EndReason {
+    Checkmate,
+    Stalemate,
+    Resignation,
+    Agreement,
+    // Timeout, // maybe later
+    InsufficientMaterial,
+    FiftyMoveRule,
+    RepetitionOfMoves,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum ClientPacket {
     Disconnect,
     Reconnect,
@@ -42,4 +61,5 @@ pub enum ServerPacket {
     InvalidMove(chessstate::ChessState),
     StateReminder(chessstate::ChessState),
     Move(chessmove::ChessMove),
+    EndGame(GameEnd),
 }
