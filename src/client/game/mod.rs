@@ -3,9 +3,10 @@ use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::Win
 use crate::api::{
     chessmove::{ChessColor, ChessMove, ChessboardLocation},
     chessstate::ChessState,
+    EndReason,
 };
 
-use super::{despawn_screen, GameState, FONT};
+use super::{despawn_screen, GameState, VictoryEvent, FONT};
 
 mod chess_pieces;
 mod gameplay;
@@ -34,6 +35,7 @@ impl Plugin for GamePlugin {
                     chess_pieces::respawn_chess_pieces.run_if(in_state(GameState::Gaming)),
                     resize_chessboard.run_if(in_state(GameState::Gaming)),
                     turn_notifier.run_if(in_state(GameState::Gaming)),
+                    end_game.run_if(in_state(GameState::Gaming)),
                 ),
             )
             .add_systems(OnExit(GameState::Gaming), despawn_screen::<GameWindow>);
@@ -221,5 +223,64 @@ fn turn_notifier(
             t.sections[0].value = String::from("it's the opponents turn");
             t.sections[0].style.color = Color::GRAY;
         }
+    }
+}
+
+fn end_game(
+    mut commands: Commands,
+    mut event_reader: EventReader<VictoryEvent>,
+    size: Res<TileSize>,
+    asset_server: Res<AssetServer>,
+) {
+    for &victory in event_reader.iter() {
+        let (mut msg, reason) = match victory {
+            VictoryEvent::Win(reason) => ("You Win!".to_string(), reason),
+            VictoryEvent::Draw(reason) => ("It's a draw".to_string(), reason),
+            VictoryEvent::Loss(reason) => ("You lose...".to_string(), reason),
+        };
+        msg.push_str("\nbecause ");
+        msg.push_str(match reason {
+            EndReason::Checkmate => "of a checkmate",
+            EndReason::Stalemate => "of a stalemate",
+            EndReason::Resignation => "your opponent resigned",
+            EndReason::Agreement => "of agreement",
+            EndReason::InsufficientMaterial => "of insufficient material",
+            EndReason::FiftyMoveRule => "of the fifty move rule",
+            EndReason::RepetitionOfMoves => "of a repetition of moves",
+        });
+        // all this boilerplate for centering some text (css reference)
+        commands
+            .spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        position_type: PositionType::Absolute,
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::FlexEnd,
+                        ..default()
+                    },
+                    ..default()
+                },
+                GameWindow,
+            ))
+            .with_children(|parent| {
+                parent.spawn(
+                    TextBundle::from_section(
+                        msg,
+                        TextStyle {
+                            font: asset_server.load(FONT),
+                            font_size: size.0,
+                            color: Color::DARK_GREEN,
+                        },
+                    )
+                    .with_text_alignment(TextAlignment::Center)
+                    .with_style(Style {
+                        position_type: PositionType::Absolute,
+                        align_self: AlignSelf::Center,
+                        ..default()
+                    }),
+                );
+            });
     }
 }

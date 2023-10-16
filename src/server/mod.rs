@@ -121,7 +121,8 @@ fn receive_packet(
                             state.send_opponent(
                                 packet.connection.id(),
                                 ServerPacket::EndGame(reason),
-                            )
+                            );
+                            packet.connection.disconnect();
                         }
                         info!("send packet");
                     }
@@ -145,6 +146,7 @@ fn receive_packet(
                 } else {
                     game_queue.0.retain(|x| x.id() != packet.connection.id());
                 }
+                packet.connection.disconnect();
             }
             ClientPacket::Reconnect => {
                 packet

@@ -116,7 +116,10 @@ pub fn receive_packet(
                     .send(ClientPacket::Reconnect)
                     .unwrap_or_else(|x| warn!("connection error {:?}", x)),
             },
-            ServerPacket::Disconnect => game_state.set(GameState::MainMenu),
+            ServerPacket::Disconnect => {
+                packet.connection.disconnect();
+                game_state.set(GameState::MainMenu);
+            },
             ServerPacket::EndGame(end) => victory_event.send(match end {
                 GameEnd::White(reason) => {
                     if *color == ChessColor::White {
@@ -147,6 +150,7 @@ fn window_close(
             connection
                 .send(ClientPacket::Disconnect)
                 .unwrap_or_else(|_| warn!("couldnt send a packet while closing game (too bad)"));
+            connection.disconnect();
         }
     }
 }
