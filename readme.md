@@ -20,11 +20,10 @@ Inspired by Chess Battle Advanced (yes I know that's not a real game) and [Icely
 
 ---
 ## known bugs
-There is no win or draw detection (the game doesn't end ever basically).
 
-The game softlockes in case of a checkmate or stalemate.
+None at the moment.
 
-50 move rule does not exist yet.
+Some missing features.
 
 All visuals are bad.
 

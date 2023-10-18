@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt, net::SocketAddr};
 use bevy::prelude::*;
 use bevy_slinet::{
     connection::{ConnectionId, EcsConnection},
-    server::{NewConnectionEvent, PacketReceiveEvent, ServerPlugin, DisconnectionEvent},
+    server::{DisconnectionEvent, NewConnectionEvent, PacketReceiveEvent, ServerPlugin},
 };
 
 use rand::prelude::*;
@@ -22,7 +22,15 @@ pub fn start_server(addr: SocketAddr) {
         .init_resource::<GameId>()
         .add_plugins(MinimalPlugins)
         .add_plugins(ServerPlugin::<Config>::bind(addr))
-        .add_systems(Update, (create_game, new_connection_system, receive_packet, disconnect))
+        .add_systems(
+            Update,
+            (
+                create_game,
+                new_connection_system,
+                receive_packet,
+                disconnect,
+            ),
+        )
         .run();
 }
 
@@ -43,7 +51,6 @@ pub struct Game {
     pub white: EcsConnection<ServerPacket>,
     pub black: EcsConnection<ServerPacket>,
     pub state: ChessState,
-    pub turn: ChessColor,
     pub move_history: Vec<Chessboard>, // might store more efficient later
 }
 
@@ -53,7 +60,6 @@ impl Game {
             white,
             black,
             state: default(),
-            turn: ChessColor::White,
             move_history: Vec::new(),
         }
     }
@@ -82,6 +88,17 @@ impl Game {
         }
         .disconnect();
     }
+
+    pub fn opponent_id(&self, connection_id: ConnectionId) -> ConnectionId {
+        if self.white.id() == connection_id {
+            self.black.id()
+        } else if self.black.id() == connection_id {
+            self.white.id()
+        } else {
+            warn!("connection not in this game");
+            self.white.id()
+        }
+    }
 }
 
 fn new_connection_system(
@@ -96,7 +113,7 @@ fn new_connection_system(
 
 fn receive_packet(
     mut event: EventReader<PacketReceiveEvent<Config>>,
-    connection_map: Res<ConnectionMap>,
+    mut connection_map: ResMut<ConnectionMap>,
     mut game_map: ResMut<ChessGameMap>,
 ) {
     for packet in event.iter() {
@@ -134,7 +151,16 @@ fn receive_packet(
                                 ServerPacket::EndGame(reason),
                             );
                             packet.connection.disconnect();
-                            state.disconnect_opponent(packet.connection.id())
+                            state.disconnect_opponent(packet.connection.id());
+
+                            // remove connections (has to be done in this order because of the borrow checker)
+                            connection_map
+                                .0
+                                .remove(&state.opponent_id(packet.connection.id()));
+                            if let Some(id) = connection_map.0.get(&packet.connection.id()) {
+                                game_map.0.remove(id);
+                            }
+                            connection_map.0.remove(&packet.connection.id());
                         }
                         info!("send packet");
                     }

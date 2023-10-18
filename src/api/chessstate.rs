@@ -5,7 +5,7 @@ use super::{
         ChessColor, ChessMove, ChessPiece, ChessPieceType, Chessboard, ChessboardLocation, File,
         Rank,
     },
-    GameEnd,
+    EndReason, GameEnd,
 };
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -16,6 +16,7 @@ pub struct ChessState {
     pub turn: ChessColor,
     /// Some(File) if a pawn pushed 2 squares on that file as the last move.
     pub en_passant: Option<File>,
+    pub fifty_move_rule: u8,
     pub white_king_moved: bool,
     pub black_king_moved: bool,
     pub white_a_rook_moved: bool,
@@ -68,6 +69,7 @@ impl Default for ChessState {
             ],
             turn: ChessColor::White,
             en_passant: None,
+            fifty_move_rule: 0,
             white_king_moved: false,
             black_king_moved: false,
             white_a_rook_moved: false,
@@ -156,6 +158,14 @@ impl ChessState {
         } else {
             false
         };
+        // fifty move rule
+        if self.get_location(chess_move.to).is_some()
+            || piece.is_some_and(|p| p.piece_type == ChessPieceType::Pawn)
+        {
+            self.fifty_move_rule = 0;
+        } else {
+            self.fifty_move_rule += 1;
+        }
 
         self.set_location(chess_move.to, piece);
 
@@ -255,9 +265,102 @@ impl ChessState {
     }
 
     // checks if the game should end
-    #[allow(unused_variables)] // TODO implement this function
     pub fn check_game_end(&self, move_history: &[Chessboard]) -> Option<GameEnd> {
-        None
+        if self.fifty_move_rule == 50 {
+            return Some(GameEnd::Draw(EndReason::FiftyMoveRule));
+        }
+        if move_history.iter().filter(|&b| b == &self.board).count() == 3 {
+            return Some(GameEnd::Draw(EndReason::RepetitionOfMoves));
+        }
+        if self
+            .board
+            .iter()
+            .flatten()
+            .filter_map(ToOwned::to_owned)
+            .count()
+            == 3
+        {
+            let piece = self
+                .board
+                .iter()
+                .flatten()
+                .filter_map(ToOwned::to_owned)
+                .find(|&x| x.piece_type != ChessPieceType::King);
+            if let Some(piece) = piece {
+                if piece.piece_type == ChessPieceType::Bishop
+                    || piece.piece_type == ChessPieceType::Knight
+                {
+                    return Some(GameEnd::Draw(EndReason::InsufficientMaterial));
+                }
+            }
+        }
+        // check for king moves for efficientcy (could maybe be slower then then not doing this but I havent benchmarked it)
+        let mut king_location = None;
+        for x in 0..8 {
+            for y in 0..8 {
+                let location = ChessboardLocation::new(x, y);
+                if self.get_location(location)
+                    == Some(ChessPiece::new(self.turn, ChessPieceType::King))
+                {
+                    for (x, y) in [
+                        (-1, -1),
+                        (-1, 0),
+                        (-1, 1),
+                        (0, 1),
+                        (1, 1),
+                        (1, 0),
+                        (1, -1),
+                        (0, -1),
+                    ] {
+                        let rank = (location.rank as u8).wrapping_add_signed(x);
+                        let file = (location.file as u8).wrapping_add_signed(y);
+                        if rank <= 7 || file <= 7 {
+                            continue;
+                        }
+                        if moves::king(
+                            self,
+                            ChessMove {
+                                from: location,
+                                to: ChessboardLocation::new(rank, file),
+                            },
+                        ) {
+                            return None;
+                        }
+                    }
+                    king_location = Some(location);
+                    break;
+                }
+            }
+        }
+        // NOTE most inefficient algorithm possible
+        for x in 0..8 {
+            for y in 0..8 {
+                for x2 in 0..8 {
+                    for y2 in 0..8 {
+                        if self.is_valid_move(ChessMove {
+                            from: ChessboardLocation::new(x, y),
+                            to: ChessboardLocation::new(x2, y2),
+                        }) {
+                            return None;
+                        }
+                    }
+                }
+            }
+        }
+        // couldnt find any legal moves
+        let Some(king_location) = king_location else {
+            error!("king is gone?");
+            return Some(GameEnd::Draw(EndReason::Checkmate));
+        };
+        Some(if self.is_attacked(king_location) {
+            if self.turn == ChessColor::White {
+                GameEnd::Black(EndReason::Checkmate)
+            } else {
+                GameEnd::White(EndReason::Checkmate)
+            }
+        } else {
+            GameEnd::Draw(EndReason::Stalemate)
+        })
     }
 }
 

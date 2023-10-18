@@ -3,7 +3,7 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use bevy::{prelude::*, window::WindowCloseRequested};
 use bevy_slinet::client::{
     ClientConnection, ClientConnections, ClientPlugin, ConnectionEstablishEvent,
-    ConnectionRequestEvent, PacketReceiveEvent, DisconnectionEvent,
+    ConnectionRequestEvent, PacketReceiveEvent,
 };
 
 use crate::api::{
@@ -25,12 +25,14 @@ impl Plugin for NetworkingPlugin {
             .add_systems(
                 Update,
                 (
-                    send_move.run_if(in_state(GameState::Gaming)),
+                    send_move.run_if(
+                        in_state(GameState::Gaming)
+                            .and_then(resource_exists::<ClientConnection<Config>>()),
+                    ),
                     make_connection,
                     receive_connection,
                     receive_packet,
                     window_close,
-                    end_connection,
                 ),
             );
     }
@@ -78,15 +80,6 @@ pub fn receive_connection(
 ) {
     for _ in connection_event.iter() {
         game_state.set(GameState::Loading);
-    }
-}
-
-pub fn end_connection(
-    mut disconnection_event: EventReader<DisconnectionEvent<Config>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
-    for _ in disconnection_event.iter() {
-        game_state.set(GameState::MainMenu);
     }
 }
 
