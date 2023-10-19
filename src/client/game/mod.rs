@@ -80,11 +80,11 @@ pub struct RequestDraw;
 #[derive(Event)]
 pub struct DrawRequested;
 
-fn setup(mut commands: Commands) {
-    commands.init_resource::<ChessState>();
-    commands.init_resource::<ChessColor>();
-    commands.init_resource::<SelectedPiece>();
+fn setup(mut commands: Commands, mut redraw: EventWriter<RedrawBoardEvent>) {
+    commands.insert_resource(ChessState::default());
+    redraw.send(RedrawBoardEvent);
 
+    // camera
     commands.spawn((
         Camera2dBundle {
             camera_2d: Camera2d {

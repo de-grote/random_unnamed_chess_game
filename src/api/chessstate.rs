@@ -2,8 +2,8 @@ use std::{error::Error, fmt::Display};
 
 use super::{
     chessmove::{
-        ChessColor, ChessMove, ChessPiece, ChessPieceType, Chessboard, ChessboardLocation, File,
-        Rank, CompressedChessboard, compress_chessboard,
+        compress_chessboard, ChessColor, ChessMove, ChessPiece, ChessPieceType, Chessboard,
+        ChessboardLocation, CompressedChessboard, File, Rank,
     },
     EndReason, GameEnd,
 };
@@ -269,7 +269,12 @@ impl ChessState {
         if self.fifty_move_rule == 50 {
             return Some(GameEnd::Draw(EndReason::FiftyMoveRule));
         }
-        if move_history.iter().filter(|&b| b == &compress_chessboard(&self.board)).count() == 3 {
+        if move_history
+            .iter()
+            .filter(|&b| b == &compress_chessboard(&self.board))
+            .count()
+            == 3
+        {
             return Some(GameEnd::Draw(EndReason::RepetitionOfMoves));
         }
         if self

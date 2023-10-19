@@ -9,7 +9,7 @@ use bevy_slinet::{
 use rand::prelude::*;
 
 use crate::api::{
-    chessmove::{ChessColor, CompressedChessboard, compress_chessboard},
+    chessmove::{compress_chessboard, ChessColor, CompressedChessboard},
     chessstate::ChessState,
     ClientPacket, Config, EndReason, GameEnd, ServerPacket,
 };
@@ -126,7 +126,9 @@ fn receive_packet(
                         state.draw = None;
                         state
                             .send_opponent(packet.connection.id(), ServerPacket::Move(player_move));
-                        state.move_history.push(compress_chessboard(&state.state.board));
+                        state
+                            .move_history
+                            .push(compress_chessboard(&state.state.board));
                         if let Some(reason) = state.state.check_game_end(&state.move_history) {
                             writer.send(EndGameEvent(*id, reason));
                         }
