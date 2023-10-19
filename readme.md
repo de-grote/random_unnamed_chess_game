@@ -23,6 +23,8 @@ Inspired by Chess Battle Advanced (yes I know that's not a real game) and [Icely
 
 None at the moment.
 
+Starting a game after already having played one is buggy.
+
 Some missing features.
 
 All visuals are bad.

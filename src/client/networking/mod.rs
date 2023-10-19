@@ -11,7 +11,7 @@ use crate::api::{
 };
 
 use super::{
-    game::{MoveEvent, OpponentMoveEvent, RedrawBoardEvent},
+    game::{DrawRequested, MoveEvent, OpponentMoveEvent, RedrawBoardEvent, RequestDraw, Resign},
     GameState, VictoryEvent,
 };
 
@@ -33,6 +33,11 @@ impl Plugin for NetworkingPlugin {
                     receive_connection,
                     receive_packet,
                     window_close,
+                    resign,
+                    request_draw.run_if(
+                        in_state(GameState::Gaming)
+                            .and_then(resource_exists::<ClientConnection<Config>>()),
+                    ),
                 ),
             );
     }
@@ -83,6 +88,7 @@ pub fn receive_connection(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn receive_packet(
     mut packet_event: EventReader<PacketReceiveEvent<Config>>,
     mut color: ResMut<ChessColor>,
@@ -91,6 +97,7 @@ pub fn receive_packet(
     mut move_event: EventWriter<OpponentMoveEvent>,
     mut redraw_event: EventWriter<RedrawBoardEvent>,
     mut victory_event: EventWriter<VictoryEvent>,
+    mut draw_event: EventWriter<DrawRequested>,
 ) {
     for packet in packet_event.iter() {
         info!("got a packet, {:?}", packet.packet);
@@ -136,6 +143,9 @@ pub fn receive_packet(
                 }
                 GameEnd::Draw(reason) => VictoryEvent::Draw(reason),
             }),
+            ServerPacket::DrawRequested => {
+                draw_event.send(DrawRequested);
+            }
         }
     }
 }
@@ -148,5 +158,31 @@ fn window_close(
         for connection in connections.iter() {
             connection.disconnect();
         }
+    }
+}
+
+fn resign(
+    mut resign_event: EventReader<Resign>,
+    connections: Res<ClientConnections<Config>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    for _ in resign_event.iter() {
+        if connections.is_empty() {
+            game_state.set(GameState::MainMenu);
+        }
+        for connection in connections.iter() {
+            connection.disconnect();
+        }
+    }
+}
+
+fn request_draw(
+    mut resign_event: EventReader<RequestDraw>,
+    connection: Res<ClientConnection<Config>>,
+) {
+    for _ in resign_event.iter() {
+        connection
+            .send(ClientPacket::RequestDraw)
+            .unwrap_or_else(|x| warn!("connection error {:?}", x));
     }
 }

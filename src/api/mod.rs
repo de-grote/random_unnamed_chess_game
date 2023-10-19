@@ -50,6 +50,7 @@ pub enum EndReason {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum ClientPacket {
     Reconnect,
+    RequestDraw,
     Move(chessmove::ChessMove),
 }
 
@@ -60,4 +61,5 @@ pub enum ServerPacket {
     StateReminder(chessstate::ChessState),
     Move(chessmove::ChessMove),
     EndGame(GameEnd),
+    DrawRequested,
 }

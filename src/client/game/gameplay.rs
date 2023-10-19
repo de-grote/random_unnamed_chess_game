@@ -5,7 +5,10 @@ use crate::api::{
     chessstate::ChessState,
 };
 
-use super::{Highlight, MoveEvent, RedrawBoardEvent, SelectedPiece, TileSize};
+use super::{
+    ui::{DrawButton, ResignButton},
+    Highlight, MoveEvent, RedrawBoardEvent, RequestDraw, Resign, SelectedPiece, TileSize,
+};
 
 #[allow(clippy::too_many_arguments)]
 pub fn select_piece(
@@ -77,6 +80,28 @@ pub fn highlight_piece(
             *location = loc;
         } else {
             *visibility = Visibility::Hidden;
+        }
+    }
+}
+
+pub fn resign(
+    query: Query<&Interaction, With<ResignButton>>,
+    mut event_writer: EventWriter<Resign>,
+) {
+    for &interaction in query.iter() {
+        if interaction == Interaction::Pressed {
+            event_writer.send(Resign);
+        }
+    }
+}
+
+pub fn request_draw(
+    query: Query<&Interaction, With<DrawButton>>,
+    mut event_writer: EventWriter<RequestDraw>,
+) {
+    for &interaction in query.iter() {
+        if interaction == Interaction::Pressed {
+            event_writer.send(RequestDraw);
         }
     }
 }

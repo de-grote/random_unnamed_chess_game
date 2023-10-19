@@ -20,6 +20,7 @@ pub fn start_server(addr: SocketAddr) {
         .init_resource::<GameQueue>()
         .init_resource::<ChessGameMap>()
         .init_resource::<GameId>()
+        .add_event::<EndGameEvent>()
         .add_plugins(MinimalPlugins)
         .add_plugins(ServerPlugin::<Config>::bind(addr))
         .add_systems(
@@ -29,10 +30,14 @@ pub fn start_server(addr: SocketAddr) {
                 new_connection_system,
                 receive_packet,
                 disconnect,
+                end_game,
             ),
         )
         .run();
 }
+
+#[derive(Event)]
+pub struct EndGameEvent(GameId, GameEnd);
 
 #[derive(Resource, Default, Debug)]
 pub struct ConnectionMap(pub HashMap<ConnectionId, GameId>);
@@ -51,6 +56,7 @@ pub struct Game {
     pub white: EcsConnection<ServerPacket>,
     pub black: EcsConnection<ServerPacket>,
     pub state: ChessState,
+    pub draw: Option<ChessColor>,
     pub move_history: Vec<Chessboard>, // might store more efficient later
 }
 
@@ -60,6 +66,7 @@ impl Game {
             white,
             black,
             state: default(),
+            draw: None,
             move_history: Vec::new(),
         }
     }
@@ -76,29 +83,6 @@ impl Game {
         .send(packet)
         .unwrap_or_else(connection_error);
     }
-
-    /// disconnects the opponent
-    pub fn disconnect_opponent(&self, connection_id: ConnectionId) {
-        if self.white.id() == connection_id {
-            &self.black
-        } else if self.black.id() == connection_id {
-            &self.white
-        } else {
-            return warn!("connection not in this game");
-        }
-        .disconnect();
-    }
-
-    pub fn opponent_id(&self, connection_id: ConnectionId) -> ConnectionId {
-        if self.white.id() == connection_id {
-            self.black.id()
-        } else if self.black.id() == connection_id {
-            self.white.id()
-        } else {
-            warn!("connection not in this game");
-            self.white.id()
-        }
-    }
 }
 
 fn new_connection_system(
@@ -113,8 +97,9 @@ fn new_connection_system(
 
 fn receive_packet(
     mut event: EventReader<PacketReceiveEvent<Config>>,
-    mut connection_map: ResMut<ConnectionMap>,
+    connection_map: ResMut<ConnectionMap>,
     mut game_map: ResMut<ChessGameMap>,
+    mut writer: EventWriter<EndGameEvent>,
 ) {
     for packet in event.iter() {
         let Some(id) = connection_map.0.get(&packet.connection.id()) else {
@@ -138,31 +123,13 @@ fn receive_packet(
                             .send(ServerPacket::InvalidMove(state.state))
                             .unwrap_or_else(connection_error);
                     } else {
+                        state.draw = None;
                         state
                             .send_opponent(packet.connection.id(), ServerPacket::Move(player_move));
                         state.move_history.push(state.state.board);
                         if let Some(reason) = state.state.check_game_end(&state.move_history) {
-                            packet
-                                .connection
-                                .send(ServerPacket::EndGame(reason))
-                                .unwrap_or_else(connection_error);
-                            state.send_opponent(
-                                packet.connection.id(),
-                                ServerPacket::EndGame(reason),
-                            );
-                            packet.connection.disconnect();
-                            state.disconnect_opponent(packet.connection.id());
-
-                            // remove connections (has to be done in this order because of the borrow checker)
-                            connection_map
-                                .0
-                                .remove(&state.opponent_id(packet.connection.id()));
-                            if let Some(id) = connection_map.0.get(&packet.connection.id()) {
-                                game_map.0.remove(id);
-                            }
-                            connection_map.0.remove(&packet.connection.id());
+                            writer.send(EndGameEvent(*id, reason));
                         }
-                        info!("send packet");
                     }
                 } else {
                     packet
@@ -181,7 +148,54 @@ fn receive_packet(
                     packet.connection.disconnect();
                 }
             }
+            ClientPacket::RequestDraw => {
+                if let Some(game) = game {
+                    if let Some(draw) = game.draw {
+                        let color = if packet.connection.id() == game.white.id() {
+                            ChessColor::White
+                        } else {
+                            ChessColor::Black
+                        };
+                        if color != draw {
+                            writer.send(EndGameEvent(*id, GameEnd::Draw(EndReason::Agreement)));
+                        }
+                    } else {
+                        game.draw = Some(if packet.connection.id() == game.white.id() {
+                            ChessColor::White
+                        } else {
+                            ChessColor::Black
+                        });
+                        game.send_opponent(packet.connection.id(), ServerPacket::DrawRequested);
+                    }
+                }
+            }
         }
+    }
+}
+
+fn end_game(
+    mut event: EventReader<EndGameEvent>,
+    mut connection_map: ResMut<ConnectionMap>,
+    mut game_map: ResMut<ChessGameMap>,
+) {
+    for e in event.iter() {
+        let id = e.0;
+        let reason = e.1;
+        let Some(game) = game_map.0.get_mut(&id) else {
+            return warn!("no game to end");
+        };
+        game.white
+            .send(ServerPacket::EndGame(reason))
+            .unwrap_or_else(connection_error);
+        game.black
+            .send(ServerPacket::EndGame(reason))
+            .unwrap_or_else(connection_error);
+        connection_map.0.remove(&game.white.id());
+        connection_map.0.remove(&game.black.id());
+        game.white.disconnect();
+        game.black.disconnect();
+
+        game_map.0.remove(&id);
     }
 }
 
