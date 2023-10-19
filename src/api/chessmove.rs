@@ -123,3 +123,29 @@ impl Display for ChessboardLocation {
         f.write_str(&format!("{:?}{}", self.file, self.rank as u8 + 1))
     }
 }
+
+pub type CompressedChessboard = [u32; 8];
+
+// compresses the chessboard by 4x
+pub fn compress_chessboard(board: &Chessboard) -> CompressedChessboard {
+    let mut arr = [0u32; 8];
+    for (x, i) in arr.iter_mut().enumerate() {
+        for piece in board[x].iter() {
+            *i <<= 4;
+            if let Some(piece) = piece {
+                *i |= match piece.piece_type {
+                    ChessPieceType::King => 1,
+                    ChessPieceType::Queen => 2,
+                    ChessPieceType::Rook => 3,
+                    ChessPieceType::Knight => 4,
+                    ChessPieceType::Bishop => 5,
+                    ChessPieceType::Pawn => 6,
+                };
+                if piece.color == ChessColor::White {
+                    *i |= 0b1000;
+                }
+            }
+        }
+    }
+    arr
+}

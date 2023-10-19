@@ -3,7 +3,7 @@ use std::{error::Error, fmt::Display};
 use super::{
     chessmove::{
         ChessColor, ChessMove, ChessPiece, ChessPieceType, Chessboard, ChessboardLocation, File,
-        Rank,
+        Rank, CompressedChessboard, compress_chessboard,
     },
     EndReason, GameEnd,
 };
@@ -265,11 +265,11 @@ impl ChessState {
     }
 
     // checks if the game should end
-    pub fn check_game_end(&self, move_history: &[Chessboard]) -> Option<GameEnd> {
+    pub fn check_game_end(&self, move_history: &[CompressedChessboard]) -> Option<GameEnd> {
         if self.fifty_move_rule == 50 {
             return Some(GameEnd::Draw(EndReason::FiftyMoveRule));
         }
-        if move_history.iter().filter(|&b| b == &self.board).count() == 3 {
+        if move_history.iter().filter(|&b| b == &compress_chessboard(&self.board)).count() == 3 {
             return Some(GameEnd::Draw(EndReason::RepetitionOfMoves));
         }
         if self
