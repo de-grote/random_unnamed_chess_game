@@ -5,7 +5,7 @@ use crate::{
     client::{VictoryEvent, FONT},
 };
 
-use super::{GameWindow, MoveEvent, OpponentMoveEvent, TileSize};
+use super::{DrawRequested, GameWindow, MoveEvent, OpponentMoveEvent, TileSize};
 
 #[derive(Component)]
 pub struct ResignButton;
@@ -15,6 +15,12 @@ pub struct DrawButton;
 
 #[derive(Component)]
 pub struct TurnText;
+
+#[derive(Component)]
+pub struct DrawText;
+
+#[derive(Component)]
+pub struct SurrenderText;
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<ChessColor>) {
     // color notifier
@@ -104,13 +110,16 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                     ResignButton,
                 ))
                 .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Resign",
-                        TextStyle {
-                            font: asset_server.load(FONT),
-                            font_size: 30.0,
-                            color: Color::ALICE_BLUE,
-                        },
+                    parent.spawn((
+                        TextBundle::from_section(
+                            "Resign",
+                            TextStyle {
+                                font: asset_server.load(FONT),
+                                font_size: 30.0,
+                                color: Color::ALICE_BLUE,
+                            },
+                        ),
+                        SurrenderText,
                     ));
                 });
         })
@@ -167,10 +176,14 @@ pub fn turn_notifier(
 pub fn end_game(
     mut commands: Commands,
     mut event_reader: EventReader<VictoryEvent>,
+    mut query: Query<&mut Text, With<SurrenderText>>,
     size: Res<TileSize>,
     asset_server: Res<AssetServer>,
 ) {
     for &victory in event_reader.iter() {
+        for text in query.iter_mut() {
+            text.into_inner().sections[0].value = "Exit".to_string();
+        }
         let (mut msg, reason) = match victory {
             VictoryEvent::Win(reason) => ("You Win!".to_string(), reason),
             VictoryEvent::Draw(reason) => ("It's a draw".to_string(), reason),
@@ -220,5 +233,47 @@ pub fn end_game(
                     }),
                 );
             });
+    }
+}
+
+pub fn spawn_draw_message(
+    mut commands: Commands,
+    mut reader: EventReader<DrawRequested>,
+    asset_server: Res<AssetServer>,
+) {
+    for _ in reader.iter() {
+        commands.spawn((
+            TextBundle::from_section(
+                "Your opponent wants a draw,\npress draw to agree",
+                TextStyle {
+                    font: asset_server.load(FONT),
+                    font_size: 30.0,
+                    color: Color::BLACK,
+                },
+            )
+            .with_style(Style {
+                position_type: PositionType::Absolute,
+                top: Val::Percent(40.0),
+                right: Val::Px(15.0),
+                ..default()
+            }),
+            DrawText,
+            GameWindow,
+        ));
+    }
+}
+
+pub fn despawn_draw_message(
+    mut commands: Commands,
+    mut reader: EventReader<MoveEvent>,
+    mut reader2: EventReader<OpponentMoveEvent>,
+    query: Query<Entity, With<DrawText>>,
+) {
+    for _ in reader.iter().map(|_| ()).chain(reader2.iter().map(|_| ())) {
+        for entity in query.iter() {
+            if let Some(text) = commands.get_entity(entity) {
+                text.despawn_recursive();
+            }
+        }
     }
 }

@@ -41,6 +41,8 @@ impl Plugin for GamePlugin {
                     resize_chessboard.run_if(in_state(GameState::Gaming)),
                     ui::turn_notifier.run_if(in_state(GameState::Gaming)),
                     ui::end_game.run_if(in_state(GameState::Gaming)),
+                    ui::spawn_draw_message.run_if(in_state(GameState::Gaming)),
+                    ui::despawn_draw_message.run_if(in_state(GameState::Gaming)),
                 ),
             )
             .add_systems(OnExit(GameState::Gaming), despawn_screen::<GameWindow>);
