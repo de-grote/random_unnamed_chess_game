@@ -1,10 +1,10 @@
-use std::net::ToSocketAddrs;
-
 use bevy::{
     core_pipeline::clear_color::ClearColorConfig,
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
+use copypasta::{ClipboardContext, ClipboardProvider};
+use std::net::ToSocketAddrs;
 
 #[cfg(feature = "server")]
 use crate::server;
@@ -205,18 +205,27 @@ fn keyboard_input_system(
 
 fn connection_text_input(
     mut evr_char: EventReader<ReceivedCharacter>,
-    kbd: Res<Input<KeyCode>>,
     mut input: Query<&mut Text, With<TextSelectionInput>>,
     mut string: ResMut<ConnectionText>,
     mut address: ResMut<ConnectionAddress>,
 ) {
     let mut changed = false;
-    if kbd.just_pressed(KeyCode::Back) {
-        string.pop();
-        changed = true;
-    }
     for ev in evr_char.iter() {
-        if !ev.char.is_control() {
+        if ev.char == char::from(8) {
+            // backspace
+            string.pop();
+        } else if ev.char == char::from(127) {
+            // ctrl + backspace or delete
+            string.clear()
+        } else if ev.char == char::from(22) {
+            // ctrl + v
+            if let Ok(mut ctx) = ClipboardContext::new() {
+                if let Ok(clipboard) = ctx.get_contents() {
+                    string.push_str(&clipboard);
+                }
+            }
+        } else if !ev.char.is_control() {
+            // normal letter
             string.push(ev.char);
         }
         changed = true;
