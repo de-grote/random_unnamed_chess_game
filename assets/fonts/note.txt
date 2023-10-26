@@ -1,3 +1,0 @@
-this folder normally contains "impact.ttf" and "unicode.impact.ttf" but they're not on github so you got to download them yourself.
-currently i'm not using the unicode one so you can skip it for now I guess.
-or go ham and rename another font to impact I couldn't care less.

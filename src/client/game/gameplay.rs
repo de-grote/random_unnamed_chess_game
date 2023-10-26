@@ -1,13 +1,14 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
 use crate::api::{
-    chessmove::{ChessColor, ChessMove, ChessboardLocation},
+    chessmove::{ChessColor, ChessMove, ChessPieceType, ChessboardLocation},
     chessstate::ChessState,
 };
 
 use super::{
-    ui::{DrawButton, ResignButton},
-    Highlight, MoveEvent, RedrawBoardEvent, RequestDraw, Resign, SelectedPiece, TileSize,
+    ui::{DrawButton, PromotionMenu, PromotionPiece, ResignButton},
+    Highlight, MoveEvent, PromotionEvent, PromotionMoveEvent, RedrawBoardEvent, RequestDrawEvent,
+    ResignEvent, SelectedPiece, TileSize,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -20,6 +21,7 @@ pub fn select_piece(
     mut selected_piece: ResMut<SelectedPiece>,
     mut writer: EventWriter<MoveEvent>,
     mut redraw_writer: EventWriter<RedrawBoardEvent>,
+    mut promotion_writer: EventWriter<PromotionEvent>,
 ) {
     if !mouse_input.just_pressed(MouseButton::Left) {
         return;
@@ -59,6 +61,9 @@ pub fn select_piece(
                     if b {
                         redraw_writer.send(RedrawBoardEvent);
                     }
+                    if state.should_promote {
+                        promotion_writer.send(PromotionEvent);
+                    }
                 }
             }
         }
@@ -86,22 +91,45 @@ pub fn highlight_piece(
 
 pub fn resign(
     query: Query<&Interaction, With<ResignButton>>,
-    mut event_writer: EventWriter<Resign>,
+    mut event_writer: EventWriter<ResignEvent>,
 ) {
     for &interaction in query.iter() {
         if interaction == Interaction::Pressed {
-            event_writer.send(Resign);
+            event_writer.send(ResignEvent);
         }
     }
 }
 
 pub fn request_draw(
     query: Query<&Interaction, With<DrawButton>>,
-    mut event_writer: EventWriter<RequestDraw>,
+    mut event_writer: EventWriter<RequestDrawEvent>,
 ) {
     for &interaction in query.iter() {
         if interaction == Interaction::Pressed {
-            event_writer.send(RequestDraw);
+            event_writer.send(RequestDrawEvent);
+        }
+    }
+}
+
+pub fn clicked_promotion_menu(
+    query: Query<(&Interaction, &PromotionPiece), With<PromotionMenu>>,
+    mut writer: EventWriter<PromotionMoveEvent>,
+    mut redraw_writer: EventWriter<RedrawBoardEvent>,
+    mut state: ResMut<ChessState>,
+) {
+    for (&interaction, &piece) in query.iter() {
+        if interaction == Interaction::Pressed {
+            info!("clicked on the promotion menu");
+            let piece = match piece {
+                PromotionPiece::Queen => ChessPieceType::Queen,
+                PromotionPiece::Rook => ChessPieceType::Rook,
+                PromotionPiece::Knight => ChessPieceType::Knight,
+                PromotionPiece::Bishop => ChessPieceType::Bishop,
+            };
+            if state.promote(piece).is_ok() {
+                writer.send(PromotionMoveEvent(piece));
+                redraw_writer.send(RedrawBoardEvent);
+            }
         }
     }
 }

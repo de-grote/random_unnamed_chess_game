@@ -7,7 +7,7 @@ use bevy::prelude::*;
 #[derive(Component)]
 pub struct ChessPieceComponent;
 
-fn chess_piece_to_bundle(chess_piece: ChessPiece, asset_server: &Res<AssetServer>) -> SpriteBundle {
+fn chess_piece_to_bundle(chess_piece: ChessPiece, asset_server: &AssetServer) -> SpriteBundle {
     SpriteBundle {
         sprite: Sprite {
             custom_size: Some(Vec2::splat(1.0)),

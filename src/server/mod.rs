@@ -129,8 +129,10 @@ fn receive_packet(
                         state
                             .move_history
                             .push(compress_chessboard(&state.state.board));
-                        if let Some(reason) = state.state.check_game_end(&state.move_history) {
-                            writer.send(EndGameEvent(*id, reason));
+                        if !state.state.should_promote {
+                            if let Some(reason) = state.state.check_game_end(&state.move_history) {
+                                writer.send(EndGameEvent(*id, reason));
+                            }
                         }
                     }
                 } else {
@@ -168,6 +170,18 @@ fn receive_packet(
                             ChessColor::Black
                         });
                         game.send_opponent(packet.connection.id(), ServerPacket::DrawRequested);
+                    }
+                }
+            }
+            ClientPacket::Promotion(piece) => {
+                if let Some(game) = game {
+                    if game.state.promote(piece).is_ok() {
+                        game.send_opponent(packet.connection.id(), ServerPacket::Promotion(piece));
+                    } else {
+                        packet
+                            .connection
+                            .send(ServerPacket::InvalidMove(game.state))
+                            .unwrap_or_else(connection_error);
                     }
                 }
             }

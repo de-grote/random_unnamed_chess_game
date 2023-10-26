@@ -14,14 +14,12 @@ It should be easy to host a server, although you will need to enable port forwar
 
 Maybe I can host 'official' servers but that would be after the game is closer to finished.
 
-The game doesn't include a font so you got to download one yourself (more info in assets/fonts/note.txt).
-
 Inspired by Chess Battle Advanced (yes I know that's not a real game) and [Icely Puzzles](https://www.youtube.com/@IcelyPuzzles).
 
 ---
 ## known bugs
 
-None at the moment.
+Highlight disappears after promoting (seems like a skill issue to me).
 
 Some missing features.
 

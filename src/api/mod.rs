@@ -52,6 +52,7 @@ pub enum ClientPacket {
     Reconnect,
     RequestDraw,
     Move(chessmove::ChessMove),
+    Promotion(chessmove::ChessPieceType),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
@@ -60,6 +61,7 @@ pub enum ServerPacket {
     InvalidMove(chessstate::ChessState),
     StateReminder(chessstate::ChessState),
     Move(chessmove::ChessMove),
+    Promotion(chessmove::ChessPieceType),
     EndGame(GameEnd),
     DrawRequested,
 }

@@ -1,4 +1,7 @@
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::{
+    fmt,
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+};
 
 use bevy::{prelude::*, window::WindowCloseRequested};
 use bevy_slinet::client::{
@@ -6,12 +9,18 @@ use bevy_slinet::client::{
     ConnectionRequestEvent, PacketReceiveEvent,
 };
 
-use crate::api::{
-    chessmove::ChessColor, chessstate::ChessState, ClientPacket, Config, GameEnd, ServerPacket,
+use crate::{
+    api::{
+        chessmove::ChessColor, chessstate::ChessState, ClientPacket, Config, GameEnd, ServerPacket,
+    },
+    client::game::OpponentPromotionEvent,
 };
 
 use super::{
-    game::{DrawRequested, MoveEvent, OpponentMoveEvent, RedrawBoardEvent, RequestDraw, Resign},
+    game::{
+        DrawRequestedEvent, MoveEvent, OpponentMoveEvent, PromotionMoveEvent, RedrawBoardEvent,
+        RequestDrawEvent, ResignEvent,
+    },
     GameState, VictoryEvent,
 };
 
@@ -26,6 +35,10 @@ impl Plugin for NetworkingPlugin {
                 Update,
                 (
                     send_move.run_if(
+                        in_state(GameState::Gaming)
+                            .and_then(resource_exists::<ClientConnection<Config>>()),
+                    ),
+                    send_promotion.run_if(
                         in_state(GameState::Gaming)
                             .and_then(resource_exists::<ClientConnection<Config>>()),
                     ),
@@ -65,7 +78,19 @@ pub fn send_move(
     for event in move_event.iter() {
         connection
             .send(ClientPacket::Move(event.0))
-            .unwrap_or_else(|x| warn!("connection error {:?}", x));
+            .unwrap_or_else(connection_error);
+    }
+}
+
+pub fn send_promotion(
+    mut promotion_event: EventReader<PromotionMoveEvent>,
+    connection: Res<ClientConnection<Config>>,
+) {
+    for event in promotion_event.iter() {
+        connection
+            .send(ClientPacket::Promotion(event.0))
+            .unwrap_or_else(connection_error);
+        info!("promotion packet send");
     }
 }
 
@@ -97,7 +122,8 @@ pub fn receive_packet(
     mut move_event: EventWriter<OpponentMoveEvent>,
     mut redraw_event: EventWriter<RedrawBoardEvent>,
     mut victory_event: EventWriter<VictoryEvent>,
-    mut draw_event: EventWriter<DrawRequested>,
+    mut draw_event: EventWriter<DrawRequestedEvent>,
+    mut promotion_event: EventWriter<OpponentPromotionEvent>,
 ) {
     for packet in packet_event.iter() {
         info!("got a packet, {:?}", packet.packet);
@@ -124,7 +150,7 @@ pub fn receive_packet(
                 Err(_) => packet
                     .connection
                     .send(ClientPacket::Reconnect)
-                    .unwrap_or_else(|x| warn!("connection error {:?}", x)),
+                    .unwrap_or_else(connection_error),
             },
             ServerPacket::EndGame(end) => victory_event.send(match end {
                 GameEnd::White(reason) => {
@@ -144,7 +170,18 @@ pub fn receive_packet(
                 GameEnd::Draw(reason) => VictoryEvent::Draw(reason),
             }),
             ServerPacket::DrawRequested => {
-                draw_event.send(DrawRequested);
+                draw_event.send(DrawRequestedEvent);
+            }
+            ServerPacket::Promotion(piece) => {
+                if chess_state.promote(piece).is_err() {
+                    packet
+                        .connection
+                        .send(ClientPacket::Reconnect)
+                        .unwrap_or_else(connection_error);
+                } else {
+                    redraw_event.send(RedrawBoardEvent);
+                    promotion_event.send(OpponentPromotionEvent);
+                }
             }
         }
     }
@@ -162,7 +199,7 @@ fn window_close(
 }
 
 fn resign(
-    mut resign_event: EventReader<Resign>,
+    mut resign_event: EventReader<ResignEvent>,
     connections: Res<ClientConnections<Config>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
@@ -177,7 +214,7 @@ fn resign(
 }
 
 fn request_draw(
-    mut resign_event: EventReader<RequestDraw>,
+    mut resign_event: EventReader<RequestDrawEvent>,
     connection: Res<ClientConnection<Config>>,
 ) {
     for _ in resign_event.iter() {
@@ -185,4 +222,8 @@ fn request_draw(
             .send(ClientPacket::RequestDraw)
             .unwrap_or_else(|x| warn!("connection error {:?}", x));
     }
+}
+
+fn connection_error(err: impl fmt::Debug) {
+    warn!("connection error {:?}", err);
 }

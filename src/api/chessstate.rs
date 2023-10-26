@@ -16,7 +16,10 @@ pub struct ChessState {
     pub turn: ChessColor,
     /// Some(File) if a pawn pushed 2 squares on that file as the last move.
     pub en_passant: Option<File>,
+    /// moves since last pawn move or capture
     pub fifty_move_rule: u8,
+    /// player should make a promotion
+    pub should_promote: bool,
     pub white_king_moved: bool,
     pub black_king_moved: bool,
     pub white_a_rook_moved: bool,
@@ -70,6 +73,7 @@ impl Default for ChessState {
             turn: ChessColor::White,
             en_passant: None,
             fifty_move_rule: 0,
+            should_promote: false,
             white_king_moved: false,
             black_king_moved: false,
             white_a_rook_moved: false,
@@ -100,7 +104,7 @@ impl ChessState {
     }
 
     pub fn is_valid_move(&self, chess_move: ChessMove) -> bool {
-        if chess_move.to == chess_move.from {
+        if self.should_promote || chess_move.to == chess_move.from {
             return false;
         }
         let Some(piece) = self.get_location(chess_move.from) else {
@@ -120,8 +124,8 @@ impl ChessState {
             return false;
         };
         let mut copy = *self;
-        let p = copy.take_piece(chess_move.from);
-        copy.set_location(chess_move.to, p);
+        copy.move_piece_unchecked(chess_move);
+        copy.turn = self.turn;
         for x in 0..8 {
             for y in 0..8 {
                 let location = ChessboardLocation::new(x, y);
@@ -140,6 +144,11 @@ impl ChessState {
         if !self.is_valid_move(chess_move) {
             return Err(InvalidMoveError);
         }
+        Ok(self.move_piece_unchecked(chess_move))
+    }
+
+    /// moves the piece, assumes it is valid
+    fn move_piece_unchecked(&mut self, chess_move: ChessMove) -> bool {
         let piece = self.take_piece(chess_move.from);
 
         // en passant intermission
@@ -224,8 +233,49 @@ impl ChessState {
                 out = true;
             }
         }
-        self.turn = !self.turn;
-        Ok(out)
+        // promotion
+        if piece.is_some_and(|p| {
+            p.piece_type == ChessPieceType::Pawn
+                && chess_move.to.rank
+                    == match self.turn {
+                        ChessColor::White => Rank::Eight,
+                        ChessColor::Black => Rank::One,
+                    }
+        }) {
+            self.should_promote = true;
+        } else {
+            self.turn = !self.turn;
+        }
+        out
+    }
+
+    pub fn promote(&mut self, piece: ChessPieceType) -> Result<(), InvalidMoveError> {
+        if !self.should_promote || piece == ChessPieceType::King || piece == ChessPieceType::Pawn {
+            return Err(InvalidMoveError);
+        }
+        let rank = match self.turn {
+            ChessColor::White => Rank::Eight,
+            ChessColor::Black => Rank::One,
+        };
+        for file in 0..8 {
+            let location = ChessboardLocation::new(rank, file);
+            if self
+                .get_location(location)
+                .is_some_and(|p| p.piece_type == ChessPieceType::Pawn && p.color == self.turn)
+            {
+                self.set_location(
+                    location,
+                    Some(ChessPiece {
+                        color: self.turn,
+                        piece_type: piece,
+                    }),
+                );
+                self.turn = !self.turn;
+                self.should_promote = false;
+                return Ok(());
+            }
+        }
+        Err(InvalidMoveError)
     }
 
     /// returns true if a square is attacked by the opponent
@@ -337,13 +387,17 @@ impl ChessState {
                 }
             }
         }
-        // NOTE most inefficient algorithm possible
+        // NOTE inefficient but easy algorithm
         for x in 0..8 {
             for y in 0..8 {
+                let from = ChessboardLocation::new(x, y);
+                if self.get_location(from).is_none() {
+                    continue;
+                }
                 for x2 in 0..8 {
                     for y2 in 0..8 {
                         if self.is_valid_move(ChessMove {
-                            from: ChessboardLocation::new(x, y),
+                            from,
                             to: ChessboardLocation::new(x2, y2),
                         }) {
                             return None;
@@ -400,8 +454,6 @@ impl Display for ChessState {
 }
 
 mod moves {
-    use bevy::prelude::info;
-
     use crate::api::chessmove::{ChessColor, ChessMove, ChessboardLocation, File, Rank};
 
     use super::ChessState;
@@ -559,7 +611,6 @@ mod moves {
             ChessColor::White => 1,
             ChessColor::Black => -1,
         };
-        info!("{:?}", chess_move);
         if chess_move.from.file == chess_move.to.file {
             if (chess_move.from.rank as u8).saturating_add_signed(dir) == chess_move.to.rank as u8 {
                 return state.get_location(chess_move.to).is_none();

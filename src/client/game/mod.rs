@@ -1,7 +1,7 @@
 use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::WindowResized};
 
 use crate::api::{
-    chessmove::{ChessColor, ChessMove, ChessboardLocation},
+    chessmove::{ChessColor, ChessMove, ChessPieceType, ChessboardLocation},
     chessstate::ChessState,
 };
 
@@ -21,9 +21,12 @@ impl Plugin for GamePlugin {
             .add_event::<MoveEvent>()
             .add_event::<OpponentMoveEvent>()
             .add_event::<RedrawBoardEvent>()
-            .add_event::<Resign>()
-            .add_event::<RequestDraw>()
-            .add_event::<DrawRequested>()
+            .add_event::<ResignEvent>()
+            .add_event::<RequestDrawEvent>()
+            .add_event::<DrawRequestedEvent>()
+            .add_event::<PromotionEvent>()
+            .add_event::<PromotionMoveEvent>()
+            .add_event::<OpponentPromotionEvent>()
             .add_systems(
                 OnEnter(GameState::Gaming),
                 (setup, chess_pieces::spawn_chess_pieces, ui::setup),
@@ -42,7 +45,9 @@ impl Plugin for GamePlugin {
                     ui::turn_notifier.run_if(in_state(GameState::Gaming)),
                     ui::end_game.run_if(in_state(GameState::Gaming)),
                     ui::spawn_draw_message.run_if(in_state(GameState::Gaming)),
-                    ui::despawn_draw_message.run_if(in_state(GameState::Gaming)),
+                    ui::despawn_messages.run_if(in_state(GameState::Gaming)),
+                    ui::spawn_promotion_menu.run_if(in_state(GameState::Gaming)),
+                    gameplay::clicked_promotion_menu.run_if(in_state(GameState::Gaming)),
                 ),
             )
             .add_systems(OnExit(GameState::Gaming), despawn_screen::<GameWindow>);
@@ -74,13 +79,22 @@ pub struct TileSize(pub f32);
 pub struct RedrawBoardEvent;
 
 #[derive(Event)]
-pub struct Resign;
+pub struct ResignEvent;
 
 #[derive(Event)]
-pub struct RequestDraw;
+pub struct RequestDrawEvent;
 
 #[derive(Event)]
-pub struct DrawRequested;
+pub struct DrawRequestedEvent;
+
+#[derive(Event)]
+pub struct PromotionEvent;
+
+#[derive(Event)]
+pub struct PromotionMoveEvent(pub ChessPieceType);
+
+#[derive(Event)]
+pub struct OpponentPromotionEvent;
 
 fn setup(mut commands: Commands, mut redraw: EventWriter<RedrawBoardEvent>) {
     commands.insert_resource(ChessState::default());
