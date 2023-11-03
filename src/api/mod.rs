@@ -1,3 +1,5 @@
+#![cfg_attr(not(all(feature = "client", feature = "server")), allow(dead_code))]
+
 use bevy_slinet::{
     packet_length_serializer::LittleEndian,
     protocols::tcp::TcpProtocol,

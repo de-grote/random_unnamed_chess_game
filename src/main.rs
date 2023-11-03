@@ -1,5 +1,3 @@
-use std::net::ToSocketAddrs;
-
 mod api;
 #[cfg(feature = "client")]
 mod client;
@@ -12,7 +10,7 @@ compile_error!("You must enable at least the client or server feature!");
 fn main() {
     #[cfg(feature = "server")]
     {
-        use std::net::{Ipv4Addr, SocketAddr};
+        use std::net::{Ipv4Addr, SocketAddr, ToSocketAddrs};
 
         let args: Vec<_> = std::env::args().collect();
 

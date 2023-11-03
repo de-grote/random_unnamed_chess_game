@@ -19,8 +19,6 @@ Inspired by Chess Battle Advanced (yes I know that's not a real game) and [Icely
 ---
 ## known bugs
 
-Highlight disappears after promoting (seems like a skill issue to me).
-
 Some missing features.
 
 All visuals are bad.
