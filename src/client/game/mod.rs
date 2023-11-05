@@ -157,7 +157,7 @@ fn setup(mut commands: Commands, mut redraw: EventWriter<RedrawBoardEvent>) {
 
 fn resize_notifier(mut resize_event: EventReader<WindowResized>, mut tile_size: ResMut<TileSize>) {
     const BOARD_SIZE: f32 = 0.10;
-    for e in resize_event.iter() {
+    for e in resize_event.read() {
         tile_size.0 = e.width.min(e.height) * BOARD_SIZE;
     }
 }

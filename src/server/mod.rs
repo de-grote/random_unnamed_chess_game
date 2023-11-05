@@ -89,7 +89,7 @@ fn new_connection_system(
     mut events: EventReader<NewConnectionEvent<Config>>,
     mut game_queue: ResMut<GameQueue>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         info!("got a new connection {:?}", event.connection.id());
         game_queue.0.push(event.connection.clone());
     }
@@ -101,7 +101,7 @@ fn receive_packet(
     mut game_map: ResMut<ChessGameMap>,
     mut writer: EventWriter<EndGameEvent>,
 ) {
-    for packet in event.iter() {
+    for packet in event.read() {
         let Some(id) = connection_map.0.get(&packet.connection.id()) else {
             return;
         };
@@ -194,7 +194,7 @@ fn end_game(
     mut connection_map: ResMut<ConnectionMap>,
     mut game_map: ResMut<ChessGameMap>,
 ) {
-    for e in event.iter() {
+    for e in event.read() {
         let id = e.0;
         let reason = e.1;
         let Some(game) = game_map.0.get_mut(&id) else {
@@ -254,7 +254,7 @@ fn disconnect(
     mut game_map: ResMut<ChessGameMap>,
     mut game_queue: ResMut<GameQueue>,
 ) {
-    for packet in disconnect_event.iter() {
+    for packet in disconnect_event.read() {
         let Some(id) = connection_map.0.get(&packet.connection.id()) else {
             return;
         };

@@ -75,7 +75,7 @@ pub fn send_move(
     mut move_event: EventReader<MoveEvent>,
     connection: Res<ClientConnection<Config>>,
 ) {
-    for event in move_event.iter() {
+    for event in move_event.read() {
         connection
             .send(ClientPacket::Move(event.0))
             .unwrap_or_else(connection_error);
@@ -86,7 +86,7 @@ pub fn send_promotion(
     mut promotion_event: EventReader<PromotionMoveEvent>,
     connection: Res<ClientConnection<Config>>,
 ) {
-    for event in promotion_event.iter() {
+    for event in promotion_event.read() {
         connection
             .send(ClientPacket::Promotion(event.0))
             .unwrap_or_else(connection_error);
@@ -99,7 +99,7 @@ pub fn make_connection(
     mut connection_request: EventWriter<ConnectionRequestEvent<Config>>,
     address: Res<ConnectionAddress>,
 ) {
-    for _ in connection_event.iter() {
+    for _ in connection_event.read() {
         connection_request.send(ConnectionRequestEvent::new(address.0));
     }
 }
@@ -108,7 +108,7 @@ pub fn receive_connection(
     mut connection_event: EventReader<ConnectionEstablishEvent<Config>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    for _ in connection_event.iter() {
+    for _ in connection_event.read() {
         game_state.set(GameState::Loading);
     }
 }
@@ -125,7 +125,7 @@ pub fn receive_packet(
     mut draw_event: EventWriter<DrawRequestedEvent>,
     mut promotion_event: EventWriter<OpponentPromotionEvent>,
 ) {
-    for packet in packet_event.iter() {
+    for packet in packet_event.read() {
         info!("got a packet, {:?}", packet.packet);
         match packet.packet {
             ServerPacket::MatchFound(c) => {
@@ -191,7 +191,7 @@ fn window_close(
     mut close_event: EventReader<WindowCloseRequested>,
     connections: Res<ClientConnections<Config>>,
 ) {
-    for _ in close_event.iter() {
+    for _ in close_event.read() {
         for connection in connections.iter() {
             connection.disconnect();
         }
@@ -203,7 +203,7 @@ fn resign(
     connections: Res<ClientConnections<Config>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
-    for _ in resign_event.iter() {
+    for _ in resign_event.read() {
         if connections.is_empty() {
             game_state.set(GameState::MainMenu);
         }
@@ -217,7 +217,7 @@ fn request_draw(
     mut resign_event: EventReader<RequestDrawEvent>,
     connection: Res<ClientConnection<Config>>,
 ) {
-    for _ in resign_event.iter() {
+    for _ in resign_event.read() {
         connection
             .send(ClientPacket::RequestDraw)
             .unwrap_or_else(|x| warn!("connection error {:?}", x));

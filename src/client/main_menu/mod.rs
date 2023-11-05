@@ -210,7 +210,7 @@ fn connection_text_input(
     mut address: ResMut<ConnectionAddress>,
 ) {
     let mut changed = false;
-    for ev in evr_char.iter() {
+    for ev in evr_char.read() {
         if ev.char == char::from(8) {
             // backspace
             string.pop();

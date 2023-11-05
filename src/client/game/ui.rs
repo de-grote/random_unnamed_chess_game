@@ -200,7 +200,7 @@ pub fn end_game(
     size: Res<TileSize>,
     asset_server: Res<AssetServer>,
 ) {
-    for &victory in event_reader.iter() {
+    for &victory in event_reader.read() {
         for text in query.iter_mut() {
             text.into_inner().sections[0].value = "Exit".to_string();
         }
@@ -261,7 +261,7 @@ pub fn spawn_draw_message(
     mut reader: EventReader<DrawRequestedEvent>,
     asset_server: Res<AssetServer>,
 ) {
-    for _ in reader.iter() {
+    for _ in reader.read() {
         commands.spawn((
             TextBundle::from_section(
                 "Your opponent wants a draw,\npress draw to agree",
@@ -292,10 +292,10 @@ pub fn despawn_messages(
     query2: Query<Entity, With<PromotionMenu>>,
 ) {
     for _ in reader
-        .iter()
+        .read()
         .map(|_| ())
-        .chain(reader2.iter().map(|_| ()))
-        .chain(reader3.iter().map(|_| ()))
+        .chain(reader2.read().map(|_| ()))
+        .chain(reader3.read().map(|_| ()))
     {
         for entity in query.iter().chain(query2.iter()) {
             if let Some(text) = commands.get_entity(entity) {
@@ -311,7 +311,7 @@ pub fn spawn_promotion_menu(
     asset_server: Res<AssetServer>,
     color: Res<ChessColor>,
 ) {
-    for _ in reader.iter() {
+    for _ in reader.read() {
         info!("spawning promotion");
         commands
             .spawn((

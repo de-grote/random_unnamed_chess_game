@@ -61,9 +61,9 @@ pub fn move_chess_piece(
     mut query: Query<(&mut ChessboardLocation, Entity), Without<ChessBoardComponent>>,
 ) {
     for chess_move in event_reader
-        .iter()
+        .read()
         .map(|x| x.0)
-        .chain(event_reader2.iter().map(|x| x.0))
+        .chain(event_reader2.read().map(|x| x.0))
     {
         if let Some((_, ent)) = query.iter_mut().find(|x| x.0.as_ref() == &chess_move.to) {
             commands.entity(ent).despawn_recursive();
@@ -83,7 +83,7 @@ pub fn respawn_chess_pieces(
     chess_pieces: Query<Entity, With<ChessPieceComponent>>,
     mut redraw: EventReader<RedrawBoardEvent>,
 ) {
-    if redraw.iter().next().is_some() {
+    if redraw.read().next().is_some() {
         info!("redrawing board");
         for piece in chess_pieces.iter() {
             commands.entity(piece).despawn_recursive();
