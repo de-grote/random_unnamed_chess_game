@@ -96,9 +96,8 @@ pub struct PromotionMoveEvent(pub ChessPieceType);
 #[derive(Event)]
 pub struct OpponentPromotionEvent;
 
-fn setup(mut commands: Commands, mut redraw: EventWriter<RedrawBoardEvent>) {
+fn setup(mut commands: Commands) {
     commands.insert_resource(ChessState::default());
-    redraw.send(RedrawBoardEvent);
 
     // camera
     commands.spawn((

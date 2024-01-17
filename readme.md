@@ -19,8 +19,6 @@ Inspired by Chess Battle Advanced (yes I know that's not a real game) and [Icely
 ---
 ## known bugs
 
-Sometimes chess pieces just don't render
-
 Some missing features.
 
 All visuals are bad.

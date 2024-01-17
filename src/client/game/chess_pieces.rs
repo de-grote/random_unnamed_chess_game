@@ -13,6 +13,10 @@ fn chess_piece_to_bundle(chess_piece: ChessPiece, asset_server: &AssetServer) ->
             custom_size: Some(Vec2::splat(1.0)),
             ..default()
         },
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, 1.0),
+            ..default()
+        },
         texture: asset_server.load(match chess_piece.into() {
             (ChessColor::White, ChessPieceType::Pawn) => "chess/white_pawn.png",
             (ChessColor::Black, ChessPieceType::Pawn) => "chess/black_pawn.png",
