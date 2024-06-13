@@ -1,4 +1,4 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use bevy::prelude::*;
 
 use super::{despawn_screen, GameState, FONT};
 
@@ -17,13 +17,14 @@ pub struct Load;
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera2dBundle {
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::Custom(Color::Rgba {
+            camera: Camera {
+                clear_color: bevy::prelude::ClearColorConfig::Custom(Color::Rgba {
                     red: 0.1,
                     green: 0.5,
                     blue: 0.8,
                     alpha: 0.0,
                 }),
+                ..default()
             },
             ..default()
         },
@@ -39,7 +40,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 color: Color::GOLD,
             },
         )
-        .with_text_alignment(TextAlignment::Center)
+        .with_text_justify(JustifyText::Center)
         .with_style(default()),
         Load,
     ));

@@ -6,8 +6,8 @@ use crate::{
 };
 
 use super::{
-    DrawRequestedEvent, GameWindow, MoveEvent, OpponentMoveEvent, PromotionEvent,
-    PromotionMoveEvent, RedrawBoardEvent, TileSize, OpponentPromotionEvent,
+    DrawRequestedEvent, GameWindow, MoveEvent, OpponentMoveEvent, OpponentPromotionEvent,
+    PromotionEvent, PromotionMoveEvent, RedrawBoardEvent, TileSize,
 };
 
 #[derive(Component)]
@@ -245,7 +245,7 @@ pub fn end_game(
                             color: Color::DARK_GREEN,
                         },
                     )
-                    .with_text_alignment(TextAlignment::Center)
+                    .with_text_justify(JustifyText::Center)
                     .with_style(Style {
                         position_type: PositionType::Absolute,
                         align_self: AlignSelf::Center,

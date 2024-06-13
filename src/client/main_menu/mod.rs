@@ -1,5 +1,4 @@
 use bevy::{
-    core_pipeline::clear_color::ClearColorConfig,
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
@@ -19,7 +18,7 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<TextSelectionState>()
+        app.init_state::<TextSelectionState>()
             .init_resource::<ConnectionText>()
             .add_systems(OnEnter(GameState::MainMenu), setup)
             .add_systems(
@@ -69,13 +68,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // UI camera
     commands.spawn((
         Camera2dBundle {
-            camera_2d: Camera2d {
+            camera: Camera {
                 clear_color: ClearColorConfig::Custom(Color::Rgba {
                     red: 0.0,
                     green: 0.0,
                     blue: 0.0,
                     alpha: 1.0,
                 }),
+                ..default()
             },
             ..default()
         },
@@ -91,7 +91,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 color: Color::WHITE,
             },
         )
-        .with_text_alignment(TextAlignment::Center)
+        .with_text_justify(JustifyText::Center)
         .with_style(Style {
             position_type: PositionType::Absolute,
 
@@ -176,7 +176,7 @@ fn text_update_system(
     mut query: Query<&mut Text, With<FpsText>>,
 ) {
     for mut text in query.iter_mut() {
-        if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
             if let Some(value) = fps.smoothed() {
                 // Update the value of the second section
                 text.sections[1].value = format!("{value:.2}");
@@ -186,11 +186,11 @@ fn text_update_system(
 }
 
 fn keyboard_input_system(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut start_game: EventWriter<MakeConnectionEvent>,
     #[cfg(feature = "server")] server_port: Res<ConnectionAddress>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::Return) {
+    if keyboard_input.just_pressed(KeyCode::Enter) {
         #[cfg(feature = "server")]
         {
             let port = server_port.0;
@@ -205,28 +205,29 @@ fn keyboard_input_system(
 
 fn connection_text_input(
     mut evr_char: EventReader<ReceivedCharacter>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut input: Query<&mut Text, With<TextSelectionInput>>,
     mut string: ResMut<ConnectionText>,
     mut address: ResMut<ConnectionAddress>,
 ) {
     let mut changed = false;
     for ev in evr_char.read() {
-        if ev.char == char::from(8) {
-            // backspace
+        let control_pressed = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
+
+        if control_pressed && keys.pressed(KeyCode::Backspace) {
+            // ctrl + backspace
+            string.clear();
+        } else if keys.pressed(KeyCode::Backspace) {
             string.pop();
-        } else if ev.char == char::from(127) {
-            // ctrl + backspace or delete
-            string.clear()
-        } else if ev.char == char::from(22) {
-            // ctrl + v
+        } else if control_pressed && keys.pressed(KeyCode::KeyV) {
             if let Ok(mut ctx) = ClipboardContext::new() {
                 if let Ok(clipboard) = ctx.get_contents() {
                     string.push_str(&clipboard);
                 }
             }
-        } else if !ev.char.is_control() {
+        } else {
             // normal letter
-            string.push(ev.char);
+            string.push_str(&ev.char);
         }
         changed = true;
     }
@@ -261,7 +262,7 @@ fn change_background(
 fn select_ui(
     text_selection: Query<(&Interaction, &TextSelectionState)>,
     mut selection_state: ResMut<NextState<TextSelectionState>>,
-    mouse_input: Res<Input<MouseButton>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
 ) {
     if mouse_input.just_pressed(MouseButton::Left) {
         for (selection, state) in text_selection.iter() {

@@ -36,11 +36,11 @@ impl Plugin for NetworkingPlugin {
                 (
                     send_move.run_if(
                         in_state(GameState::Gaming)
-                            .and_then(resource_exists::<ClientConnection<Config>>()),
+                            .and_then(resource_exists::<ClientConnection<Config>>),
                     ),
                     send_promotion.run_if(
                         in_state(GameState::Gaming)
-                            .and_then(resource_exists::<ClientConnection<Config>>()),
+                            .and_then(resource_exists::<ClientConnection<Config>>),
                     ),
                     make_connection,
                     receive_connection,
@@ -49,7 +49,7 @@ impl Plugin for NetworkingPlugin {
                     resign,
                     request_draw.run_if(
                         in_state(GameState::Gaming)
-                            .and_then(resource_exists::<ClientConnection<Config>>()),
+                            .and_then(resource_exists::<ClientConnection<Config>>),
                     ),
                 ),
             );
@@ -152,23 +152,25 @@ pub fn receive_packet(
                     .send(ClientPacket::Reconnect)
                     .unwrap_or_else(connection_error),
             },
-            ServerPacket::EndGame(end) => victory_event.send(match end {
-                GameEnd::White(reason) => {
-                    if *color == ChessColor::White {
-                        VictoryEvent::Win(reason)
-                    } else {
-                        VictoryEvent::Loss(reason)
+            ServerPacket::EndGame(end) => {
+                victory_event.send(match end {
+                    GameEnd::White(reason) => {
+                        if *color == ChessColor::White {
+                            VictoryEvent::Win(reason)
+                        } else {
+                            VictoryEvent::Loss(reason)
+                        }
                     }
-                }
-                GameEnd::Black(reason) => {
-                    if *color == ChessColor::Black {
-                        VictoryEvent::Win(reason)
-                    } else {
-                        VictoryEvent::Loss(reason)
+                    GameEnd::Black(reason) => {
+                        if *color == ChessColor::Black {
+                            VictoryEvent::Win(reason)
+                        } else {
+                            VictoryEvent::Loss(reason)
+                        }
                     }
-                }
-                GameEnd::Draw(reason) => VictoryEvent::Draw(reason),
-            }),
+                    GameEnd::Draw(reason) => VictoryEvent::Draw(reason),
+                });
+            }
             ServerPacket::DrawRequested => {
                 draw_event.send(DrawRequestedEvent);
             }

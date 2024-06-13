@@ -14,7 +14,7 @@ use super::{
 #[allow(clippy::too_many_arguments)]
 pub fn select_piece(
     window: Query<&Window, With<PrimaryWindow>>,
-    mouse_input: Res<Input<MouseButton>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
     tile_size: Res<TileSize>,
     color: Res<ChessColor>,
     mut state: ResMut<ChessState>,

@@ -1,4 +1,4 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::WindowResized};
+use bevy::{prelude::*, window::WindowResized};
 
 use crate::api::{
     chessmove::{ChessColor, ChessMove, ChessPieceType, ChessboardLocation},
@@ -102,13 +102,14 @@ fn setup(mut commands: Commands) {
     // camera
     commands.spawn((
         Camera2dBundle {
-            camera_2d: Camera2d {
+            camera: Camera {
                 clear_color: ClearColorConfig::Custom(Color::Rgba {
                     red: 0.3,
                     green: 1.0,
                     blue: 1.0,
                     alpha: 0.0,
                 }),
+                ..default()
             },
             ..default()
         },
