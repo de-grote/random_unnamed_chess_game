@@ -11,7 +11,6 @@ use super::{
     ResignEvent, SelectedPiece, TileSize,
 };
 
-#[allow(clippy::too_many_arguments)]
 pub fn select_piece(
     window: Query<&Window, With<PrimaryWindow>>,
     mouse_input: Res<ButtonInput<MouseButton>>,

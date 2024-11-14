@@ -1,3 +1,5 @@
+use bevy::color::palettes::css as color;
+use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
@@ -69,12 +71,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::Rgba {
-                    red: 0.0,
-                    green: 0.0,
-                    blue: 0.0,
-                    alpha: 1.0,
-                }),
+                clear_color: ClearColorConfig::Custom(
+                    Srgba {
+                        red: 0.0,
+                        green: 0.0,
+                        blue: 0.0,
+                        alpha: 1.0,
+                    }
+                    .into(),
+                ),
                 ..default()
             },
             ..default()
@@ -88,7 +93,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             TextStyle {
                 font: asset_server.load(FONT),
                 font_size: 100.0,
-                color: Color::WHITE,
+                color: color::WHITE.into(),
             },
         )
         .with_text_justify(JustifyText::Center)
@@ -110,13 +115,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 TextStyle {
                     font: asset_server.load(FONT),
                     font_size: 60.0,
-                    color: Color::WHITE,
+                    color: color::WHITE.into(),
                 },
             ),
             TextSection::from_style(TextStyle {
                 font: asset_server.load(FONT),
                 font_size: 60.0,
-                color: Color::GOLD,
+                color: color::GOLD.into(),
             }),
         ]),
         FpsText,
@@ -134,8 +139,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     min_height: Val::Px(60.0),
                     ..default()
                 },
-                background_color: BackgroundColor(Color::GRAY),
-                border_color: BorderColor(Color::ALICE_BLUE),
+                background_color: color::GRAY.into(),
+                border_color: color::ALICE_BLUE.into(),
                 ..default()
             },
             TextSelectionInput,
@@ -149,7 +154,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     TextStyle {
                         font: asset_server.load(FONT),
                         font_size: 60.0,
-                        color: Color::WHITE,
+                        color: color::WHITE.into(),
                     },
                 ),
                 TextSelectionInput,
@@ -162,12 +167,13 @@ fn text_color_system(time: Res<Time>, mut query: Query<&mut Text, With<ColorText
         let seconds = time.elapsed_seconds();
 
         // Update the color of the first and only section.
-        text.sections[0].style.color = Color::Rgba {
+        text.sections[0].style.color = Srgba {
             red: (1.25 * seconds).sin() / 2.0 + 0.5,
             green: (0.75 * seconds).sin() / 2.0 + 0.5,
             blue: (0.50 * seconds).sin() / 2.0 + 0.5,
             alpha: 1.0,
-        };
+        }
+        .into();
     }
 }
 
@@ -204,7 +210,7 @@ fn keyboard_input_system(
 }
 
 fn connection_text_input(
-    mut evr_char: EventReader<ReceivedCharacter>,
+    mut evr_char: EventReader<KeyboardInput>,
     keys: Res<ButtonInput<KeyCode>>,
     mut input: Query<&mut Text, With<TextSelectionInput>>,
     mut string: ResMut<ConnectionText>,
@@ -212,22 +218,44 @@ fn connection_text_input(
 ) {
     let mut changed = false;
     for ev in evr_char.read() {
+        if !ev.state.is_pressed() {
+            continue;
+        }
         let control_pressed = keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]);
 
-        if control_pressed && keys.pressed(KeyCode::Backspace) {
-            // ctrl + backspace
-            string.clear();
-        } else if keys.pressed(KeyCode::Backspace) {
-            string.pop();
-        } else if control_pressed && keys.pressed(KeyCode::KeyV) {
-            if let Ok(mut ctx) = ClipboardContext::new() {
-                if let Ok(clipboard) = ctx.get_contents() {
-                    string.push_str(&clipboard);
+        match (control_pressed, &ev.logical_key, &ev.key_code) {
+            (true, Key::Backspace, _) | (true, _, KeyCode::Backspace) => {
+                string.clear();
+            }
+            (false, Key::Backspace, _) | (false, _, KeyCode::Backspace) => {
+                string.pop();
+            }
+            (true, _, KeyCode::KeyV) => {
+                if let Ok(mut ctx) = ClipboardContext::new() {
+                    if let Ok(clipboard) = ctx.get_contents() {
+                        string.push_str(&clipboard);
+                    }
                 }
             }
-        } else {
-            // normal letter
-            string.push_str(&ev.char);
+            (true, _, KeyCode::KeyC) => {
+                if let Ok(mut ctx) = ClipboardContext::new() {
+                    let _ = ctx.set_contents(string.0.clone());
+                }
+            }
+            (true, _, KeyCode::KeyX) => {
+                if let Ok(mut ctx) = ClipboardContext::new() {
+                    if let Ok(()) = ctx.set_contents(string.0.clone()) {
+                        string.clear();
+                    }
+                }
+            }
+            (false, Key::Character(str), _) => {
+                string.push_str(str);
+            }
+            (false, Key::Space, _) => {
+                string.push(' ');
+            }
+            _ => (),
         }
         changed = true;
     }
@@ -237,9 +265,9 @@ fn connection_text_input(
         match string.to_socket_addrs().map(|mut p| p.next()) {
             Ok(Some(v)) => {
                 *address = ConnectionAddress(v);
-                input.sections[0].style.color = Color::WHITE;
+                input.sections[0].style.color = color::WHITE.into();
             }
-            Err(_) | Ok(None) => input.sections[0].style.color = Color::ORANGE_RED,
+            Err(_) | Ok(None) => input.sections[0].style.color = color::ORANGE_RED.into(),
         };
     }
 }
@@ -251,9 +279,9 @@ fn change_background(
     if state.is_changed() {
         for (mut b, tss) in input.iter_mut() {
             if *state == *tss {
-                b.0 = Color::GRAY;
+                b.0 = color::GRAY.into();
             } else {
-                b.0 = Color::DARK_GRAY;
+                b.0 = color::DARK_GRAY.into();
             }
         }
     }

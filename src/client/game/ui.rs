@@ -1,13 +1,13 @@
+use bevy::color::palettes::css as color;
 use bevy::prelude::*;
-
-use crate::{
-    api::{chessmove::ChessColor, chessstate::ChessState, EndReason},
-    client::{VictoryEvent, FONT},
-};
 
 use super::{
     DrawRequestedEvent, GameWindow, MoveEvent, OpponentMoveEvent, OpponentPromotionEvent,
     PromotionEvent, PromotionMoveEvent, RedrawBoardEvent, TileSize,
+};
+use crate::{
+    api::{chessmove::ChessColor, chessstate::ChessState, EndReason},
+    client::{VictoryEvent, FONT},
 };
 
 #[derive(Component)]
@@ -49,9 +49,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                 font: asset_server.load(FONT),
                 font_size: 50.0,
                 color: if *color == ChessColor::White {
-                    Color::WHITE
+                    color::WHITE.into()
                 } else {
-                    Color::BLACK
+                    color::BLACK.into()
                 },
             },
         )
@@ -74,9 +74,9 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                 font: asset_server.load(FONT),
                 font_size: 50.0,
                 color: if *color == ChessColor::White {
-                    Color::INDIGO
+                    color::INDIGO.into()
                 } else {
-                    Color::GRAY
+                    color::GRAY.into()
                 },
             },
         )
@@ -102,7 +102,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                     flex_direction: FlexDirection::Column,
                     ..default()
                 },
-                background_color: BackgroundColor(Color::MIDNIGHT_BLUE),
+                background_color: color::MIDNIGHT_BLUE.into(),
                 ..default()
             },
             GameWindow,
@@ -118,7 +118,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                             padding: UiRect::all(Val::Px(10.0)),
                             ..default()
                         },
-                        background_color: BackgroundColor(Color::BLUE),
+                        background_color: color::BLUE.into(),
                         ..default()
                     },
                     ResignButton,
@@ -130,7 +130,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                             TextStyle {
                                 font: asset_server.load(FONT),
                                 font_size: 30.0,
-                                color: Color::ALICE_BLUE,
+                                color: color::ALICE_BLUE.into(),
                             },
                         ),
                         SurrenderText,
@@ -148,7 +148,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                             padding: UiRect::all(Val::Px(10.0)),
                             ..default()
                         },
-                        background_color: BackgroundColor(Color::BLUE),
+                        background_color: color::BLUE.into(),
                         ..default()
                     },
                     DrawButton,
@@ -159,7 +159,7 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>, color: Res<
                         TextStyle {
                             font: asset_server.load(FONT),
                             font_size: 30.0,
-                            color: Color::ALICE_BLUE,
+                            color: color::ALICE_BLUE.into(),
                         },
                     ));
                 });
@@ -183,9 +183,9 @@ pub fn turn_notifier(
         for text in turn_text.iter_mut() {
             let t = text.into_inner();
             let (text, c) = if state.turn == *color {
-                (String::from("it's your turn"), Color::INDIGO)
+                (String::from("it's your turn"), color::INDIGO.into())
             } else {
-                (String::from("it's the opponents turn"), Color::GRAY)
+                (String::from("it's the opponents turn"), color::GRAY.into())
             };
             t.sections[0].value = text;
             t.sections[0].style.color = c;
@@ -242,7 +242,7 @@ pub fn end_game(
                         TextStyle {
                             font: asset_server.load(FONT),
                             font_size: size.0,
-                            color: Color::DARK_GREEN,
+                            color: color::DARK_GREEN.into(),
                         },
                     )
                     .with_text_justify(JustifyText::Center)
@@ -268,7 +268,7 @@ pub fn spawn_draw_message(
                 TextStyle {
                     font: asset_server.load(FONT),
                     font_size: 30.0,
-                    color: Color::BLACK,
+                    color: color::BLACK.into(),
                 },
             )
             .with_style(Style {
@@ -327,7 +327,7 @@ pub fn spawn_promotion_menu(
                         max_height: Val::Percent(60.0),
                         ..default()
                     },
-                    background_color: Color::Rgba {
+                    background_color: Srgba {
                         red: 0.0,
                         green: 0.0,
                         blue: 0.0,
@@ -373,7 +373,7 @@ fn spawn_button_bundle(
             max_height: Val::Percent(20.0),
             ..default()
         },
-        background_color: Color::Rgba {
+        background_color: Srgba {
             red: 1.0,
             green: 1.0,
             blue: 1.0,

@@ -113,7 +113,6 @@ pub fn receive_connection(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn receive_packet(
     mut packet_event: EventReader<PacketReceiveEvent<Config>>,
     mut color: ResMut<ChessColor>,

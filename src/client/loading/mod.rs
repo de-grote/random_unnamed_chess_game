@@ -1,3 +1,4 @@
+use bevy::color::palettes::css as color;
 use bevy::prelude::*;
 
 use super::{despawn_screen, GameState, FONT};
@@ -18,12 +19,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
-                clear_color: bevy::prelude::ClearColorConfig::Custom(Color::Rgba {
-                    red: 0.1,
-                    green: 0.5,
-                    blue: 0.8,
-                    alpha: 0.0,
-                }),
+                clear_color: ClearColorConfig::Custom(
+                    Srgba {
+                        red: 0.1,
+                        green: 0.5,
+                        blue: 0.8,
+                        alpha: 0.0,
+                    }
+                    .into(),
+                ),
                 ..default()
             },
             ..default()
@@ -37,7 +41,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             TextStyle {
                 font: asset_server.load(FONT),
                 font_size: 200.0,
-                color: Color::GOLD,
+                color: color::GOLD.into(),
             },
         )
         .with_text_justify(JustifyText::Center)

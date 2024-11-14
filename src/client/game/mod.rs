@@ -103,12 +103,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::Rgba {
-                    red: 0.3,
-                    green: 1.0,
-                    blue: 1.0,
-                    alpha: 0.0,
-                }),
+                clear_color: ClearColorConfig::Custom(Color::srgba(0.3, 1.0, 1.0, 0.0)),
                 ..default()
             },
             ..default()
@@ -123,9 +118,9 @@ fn setup(mut commands: Commands) {
                 SpriteBundle {
                     sprite: Sprite {
                         color: if (x + y) % 2 == 0 {
-                            Color::rgb(0.0, 0.0, 0.0)
+                            Color::srgb(0.0, 0.0, 0.0)
                         } else {
-                            Color::rgb(1.0, 1.0, 1.0)
+                            Color::srgb(1.0, 1.0, 1.0)
                         },
                         ..default()
                     },
@@ -141,7 +136,7 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
-                color: Color::rgba(1.0, 1.0, 0.0, 0.3),
+                color: Color::srgba(1.0, 1.0, 0.0, 0.3),
                 custom_size: Some(Vec2::splat(1.0)),
                 ..default()
             },

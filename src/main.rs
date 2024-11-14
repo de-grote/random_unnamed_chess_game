@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 mod api;
 #[cfg(feature = "client")]
 mod client;

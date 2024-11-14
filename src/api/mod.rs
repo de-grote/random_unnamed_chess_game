@@ -3,10 +3,12 @@
 use bevy_slinet::{
     packet_length_serializer::LittleEndian,
     protocols::tcp::TcpProtocol,
+    serializer::{ReadOnlySerializer, SerializerAdapter},
     serializers::bincode::{BincodeSerializer, DefaultOptions},
     ClientConfig, ServerConfig,
 };
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 pub mod chessmove;
 pub mod chessstate;
@@ -18,16 +20,34 @@ impl ClientConfig for Config {
     type ClientPacket = ClientPacket;
     type ServerPacket = ServerPacket;
     type Protocol = TcpProtocol;
-    type Serializer = BincodeSerializer<DefaultOptions>;
     type LengthSerializer = LittleEndian<u32>;
+
+    type SerializerError = <BincodeSerializer<DefaultOptions> as ReadOnlySerializer<
+        ServerPacket,
+        ClientPacket,
+    >>::Error;
+
+    fn build_serializer(
+    ) -> SerializerAdapter<Self::ServerPacket, Self::ClientPacket, Self::SerializerError> {
+        SerializerAdapter::ReadOnly(Arc::new(BincodeSerializer::<DefaultOptions>::default()))
+    }
 }
 
 impl ServerConfig for Config {
     type ClientPacket = ClientPacket;
     type ServerPacket = ServerPacket;
     type Protocol = TcpProtocol;
-    type Serializer = BincodeSerializer<DefaultOptions>;
     type LengthSerializer = LittleEndian<u32>;
+
+    type SerializerError = <BincodeSerializer<DefaultOptions> as ReadOnlySerializer<
+        ServerPacket,
+        ClientPacket,
+    >>::Error;
+
+    fn build_serializer(
+    ) -> SerializerAdapter<Self::ClientPacket, Self::ServerPacket, Self::SerializerError> {
+        SerializerAdapter::ReadOnly(Arc::new(BincodeSerializer::<DefaultOptions>::default()))
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
